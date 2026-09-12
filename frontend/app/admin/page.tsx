@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   BarChart3,
   Edit3,
+  Eye,
+  EyeOff,
   Image as ImageIcon,
   IndianRupee,
   LayoutDashboard,
@@ -17,9 +19,11 @@ import {
   X,
 } from 'lucide-react';
 
-const API =
-  process.env.NEXT_PUBLIC_API_URL ||
-  '/api';
+// Always use the same-origin Next.js proxy in production.
+// This keeps the admin session cookie on the Vercel origin.
+const API = '/api';
+
+const ADMIN_EMAIL = 'admin@dravon.in';
 
 type Variant = {
   id?: string;
@@ -96,11 +100,11 @@ export default function AdminPage() {
   const [backendError, setBackendError] =
     useState('');
 
-  const [email, setEmail] =
-    useState('admin@dravon.in');
-
   const [password, setPassword] =
     useState('');
+
+  const [showPassword, setShowPassword] =
+    useState(false);
 
   const [error, setError] =
     useState('');
@@ -134,6 +138,13 @@ export default function AdminPage() {
   const [loadingData, setLoadingData] =
     useState(false);
 
+  /**
+   * API helper
+   *
+   * IMPORTANT:
+   * - Uses credentials so the admin cookie is sent.
+   * - Has a timeout so the admin page can never spin forever.
+   */
   async function api(
     path: string,
     options: RequestInit = {},
@@ -168,6 +179,9 @@ export default function AdminPage() {
     }
   }
 
+  /**
+   * Safely read JSON.
+   */
   async function readJson(
     response: Response
   ) {
@@ -178,6 +192,9 @@ export default function AdminPage() {
     }
   }
 
+  /**
+   * Check backend + admin session.
+   */
   async function loadAll(
     showLoader = true
   ) {
@@ -188,6 +205,11 @@ export default function AdminPage() {
     setBackendError('');
 
     try {
+      /**
+       * STEP 1
+       * Check whether the backend is reachable
+       * and whether the admin cookie is valid.
+       */
       const me = await api('/auth/me');
 
       if (me.status === 401 || me.status === 403) {
@@ -211,8 +233,15 @@ export default function AdminPage() {
         );
       }
 
+      /**
+       * Admin session is valid.
+       */
       setAuthenticated(true);
 
+      /**
+       * STEP 2
+       * Load dashboard and products.
+       */
       const [dashboardResponse, productsResponse] =
         await Promise.all([
           api('/admin/dashboard'),
@@ -270,22 +299,11 @@ export default function AdminPage() {
         err?.name === 'AbortError'
       ) {
         setBackendError(
-          `Backend request timed out.
-
-Make sure the Render API is running.
-
-API:
-${API}`
+          'Backend request timed out. Please try again in a moment.'
         );
       } else {
         setBackendError(
-          `Could not connect to the DRAVON backend.
-
-API:
-${API}
-
-Error:
-${err?.message || 'Unknown error'}`
+          `Could not connect to the DRAVON backend.\n\n${err?.message || 'Unknown error'}`
         );
       }
     } finally {
@@ -295,12 +313,18 @@ ${err?.message || 'Unknown error'}`
     }
   }
 
+  /**
+   * Initial session check.
+   */
   useEffect(() => {
     loadAll(true);
-
+    // Intentionally only run on first page load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * Product search.
+   */
   useEffect(() => {
     if (!authenticated) return;
 
@@ -313,6 +337,9 @@ ${err?.message || 'Unknown error'}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
+  /**
+   * Login.
+   */
   async function login(
     event: FormEvent
   ) {
@@ -321,9 +348,9 @@ ${err?.message || 'Unknown error'}`
     setError('');
     setBackendError('');
 
-    if (!email.trim() || !password) {
+    if (!password) {
       setError(
-        'Enter your admin email and password.'
+        'Enter your admin password.'
       );
       return;
     }
@@ -334,7 +361,7 @@ ${err?.message || 'Unknown error'}`
         {
           method: 'POST',
           body: JSON.stringify({
-            email: email.trim(),
+            email: ADMIN_EMAIL,
             password,
           }),
         }
@@ -350,13 +377,22 @@ ${err?.message || 'Unknown error'}`
         return;
       }
 
+      /**
+       * Login succeeded.
+       */
       setPassword('');
       setError('');
 
+      /**
+       * Give browser a moment to store cookie.
+       */
       await new Promise((resolve) =>
         setTimeout(resolve, 150)
       );
 
+      /**
+       * Reload dashboard.
+       */
       await loadAll(true);
     } catch (err: any) {
       console.error(
@@ -380,6 +416,9 @@ ${err?.message || 'Network error'}`
     }
   }
 
+  /**
+   * Logout.
+   */
   async function logout() {
     try {
       await api(
@@ -389,7 +428,8 @@ ${err?.message || 'Network error'}`
         }
       );
     } catch {
-      // Ignore logout request errors.
+      // Even if backend logout fails,
+      // clear local admin state.
     }
 
     setAuthenticated(false);
@@ -399,6 +439,9 @@ ${err?.message || 'Network error'}`
     setTab('dashboard');
   }
 
+  /**
+   * Load orders.
+   */
   async function loadOrders() {
     try {
       setLoadingData(true);
@@ -440,6 +483,9 @@ ${err?.message || 'Network error'}`
     }
   }
 
+  /**
+   * Open new product editor.
+   */
   function openNew() {
     setEditor({
       ...emptyProduct,
@@ -454,6 +500,9 @@ ${err?.message || 'Network error'}`
     });
   }
 
+  /**
+   * Open existing product.
+   */
   function openEdit(
     product: Product
   ) {
@@ -491,6 +540,9 @@ ${err?.message || 'Network error'}`
     });
   }
 
+  /**
+   * Update product editor.
+   */
   function updateEditor<
     K extends keyof Product
   >(
@@ -507,6 +559,9 @@ ${err?.message || 'Network error'}`
     );
   }
 
+  /**
+   * Save product.
+   */
   async function saveProduct(
     event: FormEvent
   ) {
@@ -672,6 +727,9 @@ ${err?.message || 'Network error'}`
     }
   }
 
+  /**
+   * Delete product.
+   */
   async function deleteProduct(
     product: Product
   ) {
@@ -723,6 +781,10 @@ This cannot be undone.`
     }
   }
 
+  /**
+   * Upload media through Cloudinary-backed
+   * backend endpoint.
+   */
   async function uploadMedia(
     file: File
   ) {
@@ -806,6 +868,12 @@ This cannot be undone.`
       [products]
     );
 
+  /**
+   * INITIAL LOADING
+   *
+   * IMPORTANT:
+   * This is no longer an endless spinner.
+   */
   if (checking) {
     return (
       <main className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-6">
@@ -824,10 +892,6 @@ This cannot be undone.`
             and loading the backend.
           </div>
 
-          <div className="mt-5 text-[9px] text-white/25 break-all">
-            {API}
-          </div>
-
           <button
             onClick={() =>
               loadAll(true)
@@ -841,6 +905,9 @@ This cannot be undone.`
     );
   }
 
+  /**
+   * BACKEND CONNECTION ERROR
+   */
   if (
     !authenticated &&
     backendError
@@ -883,6 +950,9 @@ This cannot be undone.`
     );
   }
 
+  /**
+   * LOGIN
+   */
   if (!authenticated) {
     return (
       <main className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-6">
@@ -900,40 +970,40 @@ This cannot be undone.`
 
           <div className="mt-8">
             <label className="text-[8px] tracking-[0.16em] text-white/40">
-              ADMIN EMAIL
-            </label>
-
-            <input
-              value={email}
-              onChange={(e) =>
-                setEmail(
-                  e.target.value
-                )
-              }
-              className="w-full bg-transparent border border-white/20 p-3 text-xs mt-2 outline-none focus:border-white/50"
-              placeholder="admin@dravon.in"
-              type="email"
-              autoComplete="username"
-            />
-          </div>
-
-          <div className="mt-3">
-            <label className="text-[8px] tracking-[0.16em] text-white/40">
               PASSWORD
             </label>
 
-            <input
-              value={password}
-              onChange={(e) =>
-                setPassword(
-                  e.target.value
-                )
-              }
-              className="w-full bg-transparent border border-white/20 p-3 text-xs mt-2 outline-none focus:border-white/50"
-              placeholder="PASSWORD"
-              type="password"
-              autoComplete="current-password"
-            />
+            <div className="relative mt-2">
+              <input
+                value={password}
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
+                className="w-full bg-transparent border border-white/20 p-3 pr-11 text-xs outline-none focus:border-white/50"
+                placeholder="PASSWORD"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+              />
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowPassword((visible) => !visible)
+                }
+                aria-label={
+                  showPassword
+                    ? 'Hide password'
+                    : 'Show password'
+                }
+                className="absolute right-0 top-0 h-full px-3 text-white/45 hover:text-white transition"
+              >
+                {showPassword ? (
+                  <EyeOff size={16} />
+                ) : (
+                  <Eye size={16} />
+                )}
+              </button>
+            </div>
           </div>
 
           <button
@@ -950,16 +1020,6 @@ This cannot be undone.`
               </p>
             </div>
           )}
-
-          <div className="mt-6 border-t border-white/10 pt-5">
-            <div className="text-[8px] tracking-[0.15em] text-white/25">
-              BACKEND
-            </div>
-
-            <div className="text-[9px] text-white/35 mt-1 break-all">
-              {API}
-            </div>
-          </div>
 
           <p className="text-[9px] text-white/30 mt-6 leading-relaxed">
             Admin credentials are controlled
@@ -1003,6 +1063,7 @@ This cannot be undone.`
     <main className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="flex min-h-screen">
 
+        {/* DESKTOP SIDEBAR */}
         <aside className="w-56 border-r border-white/10 p-5 hidden md:flex md:flex-col fixed inset-y-0 left-0 bg-[#0a0a0a] z-40">
           <div className="font-black tracking-[0.2em]">
             DRAVON
@@ -1062,8 +1123,10 @@ This cannot be undone.`
           </div>
         </aside>
 
+        {/* MAIN CONTENT */}
         <section className="flex-1 md:ml-56 p-5 md:p-8 overflow-auto">
 
+          {/* HEADER */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
               <div className="text-[9px] tracking-[0.2em] text-white/40">
@@ -1107,6 +1170,7 @@ This cannot be undone.`
             </div>
           </div>
 
+          {/* NOTICE */}
           {notice && (
             <div className="mt-5 border border-white/10 bg-white/[0.03] px-4 py-3 text-xs flex justify-between gap-4">
               <span>
@@ -1123,6 +1187,7 @@ This cannot be undone.`
             </div>
           )}
 
+          {/* DASHBOARD */}
           {tab ===
             'dashboard' && (
             <div className="mt-8">
@@ -1229,14 +1294,12 @@ This cannot be undone.`
                   </span>
                 </div>
 
-                <div className="text-[9px] text-white/30 mt-2 break-all">
-                  {API}
                 </div>
-              </div>
 
             </div>
           )}
 
+          {/* PRODUCTS */}
           {tab ===
             'products' && (
             <div className="mt-8">
@@ -1397,6 +1460,7 @@ This cannot be undone.`
             </div>
           )}
 
+          {/* ORDERS */}
           {tab ===
             'orders' && (
             <div className="mt-8">
@@ -1495,6 +1559,7 @@ This cannot be undone.`
             </div>
           )}
 
+          {/* MEDIA */}
           {tab ===
             'media' && (
             <div className="mt-8 space-y-5">
@@ -1567,6 +1632,7 @@ This cannot be undone.`
         </section>
       </div>
 
+      {/* PRODUCT EDITOR */}
       {editor && (
         <div className="fixed inset-0 z-[100] bg-black/80 p-4 md:p-8 overflow-y-auto">
 
@@ -1602,6 +1668,7 @@ This cannot be undone.`
 
             </div>
 
+            {/* BASIC INFO */}
             <div className="border-b border-white/10 pb-6">
 
               <div className="text-[9px] tracking-[0.18em] font-bold">
@@ -1813,6 +1880,7 @@ This cannot be undone.`
 
             </div>
 
+            {/* SEO */}
             <div className="mt-8 border-b border-white/10 pb-6">
 
               <div className="text-[9px] tracking-[0.18em] font-bold">
@@ -1855,6 +1923,7 @@ This cannot be undone.`
 
             </div>
 
+            {/* IMAGES */}
             <div className="mt-8 border-b border-white/10 pb-6">
 
               <div className="flex justify-between items-center">
@@ -2012,6 +2081,7 @@ This cannot be undone.`
 
             </div>
 
+            {/* VARIANTS */}
             <div className="mt-8 border-b border-white/10 pb-6">
 
               <div className="flex justify-between items-center">
@@ -2240,6 +2310,7 @@ This cannot be undone.`
 
             </div>
 
+            {/* ACTIONS */}
             <div className="flex justify-end gap-2 mt-8">
 
               <button
