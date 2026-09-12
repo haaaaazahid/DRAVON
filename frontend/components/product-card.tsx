@@ -2,21 +2,70 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Heart,
-  ArrowUpRight,
-} from "lucide-react";
+import { Heart, ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCart } from "./cart";
 
 function swatch(color: string) {
-  const c = color.toLowerCase();
+  const c = color.trim().toLowerCase();
 
-  if (c === "white") return "#fff";
-  if (c === "grey" || c === "gray") return "#777";
-  if (c === "red") return "#8b0000";
+  const colors: Record<string, string> = {
+    black: "#111111",
+    white: "#ffffff",
 
-  return "#111";
+    red: "#8b0000",
+    crimson: "#dc143c",
+    maroon: "#800000",
+
+    blue: "#2563eb",
+    navy: "#0f172a",
+    sky: "#38bdf8",
+    cyan: "#06b6d4",
+
+    green: "#16a34a",
+    olive: "#808000",
+    lime: "#84cc16",
+
+    yellow: "#eab308",
+    gold: "#d4af37",
+    orange: "#f97316",
+
+    brown: "#78350f",
+    beige: "#d6c6a5",
+    cream: "#fffdd0",
+
+    purple: "#7c3aed",
+    violet: "#8b5cf6",
+    pink: "#ec4899",
+
+    grey: "#777777",
+    gray: "#777777",
+    silver: "#c0c0c0",
+  };
+
+  if (colors[c]) return colors[c];
+
+  // HEX
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(c)) {
+    return c;
+  }
+
+  // RGB / RGBA / HSL / HSLA
+  if (/^(rgb|rgba|hsl|hsla)\(/i.test(c)) {
+    return c;
+  }
+
+  // Browser CSS color names
+  if (typeof window !== "undefined") {
+    const probe = document.createElement("span");
+    probe.style.color = c;
+
+    if (probe.style.color) {
+      return c;
+    }
+  }
+
+  return "#111111";
 }
 
 export function ProductCard({ p }: any) {
@@ -24,21 +73,25 @@ export function ProductCard({ p }: any) {
 
   const sizes = p.sizes || [];
   const colors = p.colors || [];
+  const variants = p.variants || [];
 
   const defaultSize = sizes.includes("M")
     ? "M"
     : sizes[0] || "M";
 
-  const defaultColor =
-    colors[0] || "Black";
+  const defaultColor = colors[0] || "Black";
 
-  const variants = p.variants || [];
-
+  /*
+   * Prefer the default color + default size.
+   * If unavailable, automatically find the first
+   * variant that actually has stock.
+   */
   const selectedVariant =
     variants.find(
       (v: any) =>
         v.color === defaultColor &&
-        v.size === defaultSize
+        v.size === defaultSize &&
+        Number(v.stock) > 0
     ) ||
     variants.find(
       (v: any) => Number(v.stock) > 0
@@ -116,9 +169,9 @@ export function ProductCard({ p }: any) {
           <button
             type="button"
             aria-label="Add to wishlist"
-            onClick={(e) =>
-              e.preventDefault()
-            }
+            onClick={(e) => {
+              e.preventDefault();
+            }}
             className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center bg-[var(--bg)]/90"
           >
             <Heart size={14} />
@@ -142,16 +195,13 @@ export function ProductCard({ p }: any) {
             </h3>
 
             <p className="mt-1 text-[9px] tracking-[.08em] text-[var(--muted)]">
-              {p.category ||
-                "PERFORMANCE"}
+              {p.category || "PERFORMANCE"}
             </p>
           </div>
 
           <div className="whitespace-nowrap text-[10px] font-bold">
             ₹
-            {Number(
-              p.price
-            ).toLocaleString("en-IN")}
+            {Number(p.price).toLocaleString("en-IN")}
           </div>
         </div>
 
@@ -159,9 +209,7 @@ export function ProductCard({ p }: any) {
           <div className="mt-1 text-[9px] text-[var(--muted)]">
             <del>
               ₹
-              {Number(
-                p.mrp
-              ).toLocaleString("en-IN")}
+              {Number(p.mrp).toLocaleString("en-IN")}
             </del>
 
             <span className="ml-2 text-[var(--red)]">
@@ -169,31 +217,29 @@ export function ProductCard({ p }: any) {
               {(
                 Number(p.mrp) -
                 Number(p.price)
-              ).toLocaleString(
-                "en-IN"
-              )}
+              ).toLocaleString("en-IN")}
             </span>
           </div>
         )}
 
         <div className="mt-2 flex items-center justify-between gap-3">
-          <div className="flex gap-1.5">
-            {colors.map(
-              (c: string) => (
-                <span
-                  key={c}
-                  title={c}
-                  className="h-3 w-3 rounded-full border border-[var(--line)]"
-                  style={{
-                    background:
-                      swatch(c),
-                  }}
-                />
-              )
-            )}
+          {/* COLOR SWATCHES */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {colors.map((c: string) => (
+              <span
+                key={c}
+                title={c}
+                aria-label={c}
+                className="h-3.5 w-3.5 rounded-full border border-[var(--line)] shadow-sm"
+                style={{
+                  backgroundColor: swatch(c),
+                }}
+              />
+            ))}
           </div>
 
-          <span className="text-[8px] tracking-[.12em] text-[var(--muted)]">
+          {/* SIZES */}
+          <span className="text-right text-[8px] tracking-[.12em] text-[var(--muted)]">
             {sizes.join(" · ")}
           </span>
         </div>
@@ -202,7 +248,7 @@ export function ProductCard({ p }: any) {
           type="button"
           disabled={!canQuickAdd}
           onClick={quickAdd}
-          className="mt-3 w-full border border-[var(--fg)] py-2.5 text-[8px] font-black tracking-[.18em] transition hover:bg-[var(--fg)] hover:text-[var(--bg)] disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-3 w-full border border-[var(--fg)] bg-[var(--surface)] py-2.5 text-[8px] font-black tracking-[.18em] text-[var(--fg)] transition hover:bg-[var(--fg)] hover:text-[var(--bg)] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {canQuickAdd
             ? `QUICK ADD — ${
