@@ -19,7 +19,7 @@ import {
 
 const API =
   process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:4000/api';
+  '/api';
 
 type Variant = {
   id?: string;
@@ -134,13 +134,6 @@ export default function AdminPage() {
   const [loadingData, setLoadingData] =
     useState(false);
 
-  /**
-   * API helper
-   *
-   * IMPORTANT:
-   * - Uses credentials so the admin cookie is sent.
-   * - Has a timeout so the admin page can never spin forever.
-   */
   async function api(
     path: string,
     options: RequestInit = {},
@@ -175,9 +168,6 @@ export default function AdminPage() {
     }
   }
 
-  /**
-   * Safely read JSON.
-   */
   async function readJson(
     response: Response
   ) {
@@ -188,9 +178,6 @@ export default function AdminPage() {
     }
   }
 
-  /**
-   * Check backend + admin session.
-   */
   async function loadAll(
     showLoader = true
   ) {
@@ -201,11 +188,6 @@ export default function AdminPage() {
     setBackendError('');
 
     try {
-      /**
-       * STEP 1
-       * Check whether the backend is reachable
-       * and whether the admin cookie is valid.
-       */
       const me = await api('/auth/me');
 
       if (me.status === 401 || me.status === 403) {
@@ -229,15 +211,8 @@ export default function AdminPage() {
         );
       }
 
-      /**
-       * Admin session is valid.
-       */
       setAuthenticated(true);
 
-      /**
-       * STEP 2
-       * Load dashboard and products.
-       */
       const [dashboardResponse, productsResponse] =
         await Promise.all([
           api('/admin/dashboard'),
@@ -297,8 +272,9 @@ export default function AdminPage() {
         setBackendError(
           `Backend request timed out.
 
-Make sure the Render API is running and that NEXT_PUBLIC_API_URL is:
+Make sure the Render API is running.
 
+API:
 ${API}`
         );
       } else {
@@ -319,18 +295,12 @@ ${err?.message || 'Unknown error'}`
     }
   }
 
-  /**
-   * Initial session check.
-   */
   useEffect(() => {
     loadAll(true);
-    // Intentionally only run on first page load.
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /**
-   * Product search.
-   */
   useEffect(() => {
     if (!authenticated) return;
 
@@ -343,9 +313,6 @@ ${err?.message || 'Unknown error'}`
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
-  /**
-   * Login.
-   */
   async function login(
     event: FormEvent
   ) {
@@ -383,22 +350,13 @@ ${err?.message || 'Unknown error'}`
         return;
       }
 
-      /**
-       * Login succeeded.
-       */
       setPassword('');
       setError('');
 
-      /**
-       * Give browser a moment to store cookie.
-       */
       await new Promise((resolve) =>
         setTimeout(resolve, 150)
       );
 
-      /**
-       * Reload dashboard.
-       */
       await loadAll(true);
     } catch (err: any) {
       console.error(
@@ -422,9 +380,6 @@ ${err?.message || 'Network error'}`
     }
   }
 
-  /**
-   * Logout.
-   */
   async function logout() {
     try {
       await api(
@@ -434,8 +389,7 @@ ${err?.message || 'Network error'}`
         }
       );
     } catch {
-      // Even if backend logout fails,
-      // clear local admin state.
+      // Ignore logout request errors.
     }
 
     setAuthenticated(false);
@@ -445,9 +399,6 @@ ${err?.message || 'Network error'}`
     setTab('dashboard');
   }
 
-  /**
-   * Load orders.
-   */
   async function loadOrders() {
     try {
       setLoadingData(true);
@@ -489,9 +440,6 @@ ${err?.message || 'Network error'}`
     }
   }
 
-  /**
-   * Open new product editor.
-   */
   function openNew() {
     setEditor({
       ...emptyProduct,
@@ -506,9 +454,6 @@ ${err?.message || 'Network error'}`
     });
   }
 
-  /**
-   * Open existing product.
-   */
   function openEdit(
     product: Product
   ) {
@@ -546,9 +491,6 @@ ${err?.message || 'Network error'}`
     });
   }
 
-  /**
-   * Update product editor.
-   */
   function updateEditor<
     K extends keyof Product
   >(
@@ -565,9 +507,6 @@ ${err?.message || 'Network error'}`
     );
   }
 
-  /**
-   * Save product.
-   */
   async function saveProduct(
     event: FormEvent
   ) {
@@ -733,9 +672,6 @@ ${err?.message || 'Network error'}`
     }
   }
 
-  /**
-   * Delete product.
-   */
   async function deleteProduct(
     product: Product
   ) {
@@ -787,10 +723,6 @@ This cannot be undone.`
     }
   }
 
-  /**
-   * Upload media through Cloudinary-backed
-   * backend endpoint.
-   */
   async function uploadMedia(
     file: File
   ) {
@@ -874,12 +806,6 @@ This cannot be undone.`
       [products]
     );
 
-  /**
-   * INITIAL LOADING
-   *
-   * IMPORTANT:
-   * This is no longer an endless spinner.
-   */
   if (checking) {
     return (
       <main className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-6">
@@ -915,9 +841,6 @@ This cannot be undone.`
     );
   }
 
-  /**
-   * BACKEND CONNECTION ERROR
-   */
   if (
     !authenticated &&
     backendError
@@ -960,9 +883,6 @@ This cannot be undone.`
     );
   }
 
-  /**
-   * LOGIN
-   */
   if (!authenticated) {
     return (
       <main className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-6">
@@ -1083,7 +1003,6 @@ This cannot be undone.`
     <main className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="flex min-h-screen">
 
-        {/* DESKTOP SIDEBAR */}
         <aside className="w-56 border-r border-white/10 p-5 hidden md:flex md:flex-col fixed inset-y-0 left-0 bg-[#0a0a0a] z-40">
           <div className="font-black tracking-[0.2em]">
             DRAVON
@@ -1143,10 +1062,8 @@ This cannot be undone.`
           </div>
         </aside>
 
-        {/* MAIN CONTENT */}
         <section className="flex-1 md:ml-56 p-5 md:p-8 overflow-auto">
 
-          {/* HEADER */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
               <div className="text-[9px] tracking-[0.2em] text-white/40">
@@ -1190,7 +1107,6 @@ This cannot be undone.`
             </div>
           </div>
 
-          {/* NOTICE */}
           {notice && (
             <div className="mt-5 border border-white/10 bg-white/[0.03] px-4 py-3 text-xs flex justify-between gap-4">
               <span>
@@ -1207,7 +1123,6 @@ This cannot be undone.`
             </div>
           )}
 
-          {/* DASHBOARD */}
           {tab ===
             'dashboard' && (
             <div className="mt-8">
@@ -1322,7 +1237,6 @@ This cannot be undone.`
             </div>
           )}
 
-          {/* PRODUCTS */}
           {tab ===
             'products' && (
             <div className="mt-8">
@@ -1483,7 +1397,6 @@ This cannot be undone.`
             </div>
           )}
 
-          {/* ORDERS */}
           {tab ===
             'orders' && (
             <div className="mt-8">
@@ -1582,7 +1495,6 @@ This cannot be undone.`
             </div>
           )}
 
-          {/* MEDIA */}
           {tab ===
             'media' && (
             <div className="mt-8 space-y-5">
@@ -1655,7 +1567,6 @@ This cannot be undone.`
         </section>
       </div>
 
-      {/* PRODUCT EDITOR */}
       {editor && (
         <div className="fixed inset-0 z-[100] bg-black/80 p-4 md:p-8 overflow-y-auto">
 
@@ -1691,7 +1602,6 @@ This cannot be undone.`
 
             </div>
 
-            {/* BASIC INFO */}
             <div className="border-b border-white/10 pb-6">
 
               <div className="text-[9px] tracking-[0.18em] font-bold">
@@ -1903,7 +1813,6 @@ This cannot be undone.`
 
             </div>
 
-            {/* SEO */}
             <div className="mt-8 border-b border-white/10 pb-6">
 
               <div className="text-[9px] tracking-[0.18em] font-bold">
@@ -1946,7 +1855,6 @@ This cannot be undone.`
 
             </div>
 
-            {/* IMAGES */}
             <div className="mt-8 border-b border-white/10 pb-6">
 
               <div className="flex justify-between items-center">
@@ -2104,7 +2012,6 @@ This cannot be undone.`
 
             </div>
 
-            {/* VARIANTS */}
             <div className="mt-8 border-b border-white/10 pb-6">
 
               <div className="flex justify-between items-center">
@@ -2333,7 +2240,6 @@ This cannot be undone.`
 
             </div>
 
-            {/* ACTIONS */}
             <div className="flex justify-end gap-2 mt-8">
 
               <button
