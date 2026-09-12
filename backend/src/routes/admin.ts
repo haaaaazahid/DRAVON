@@ -1,0 +1,12 @@
+import {Router} from 'express';import {db} from '../lib/db';import {adminAuth,AdminRequest} from '../middleware/auth';
+const r=Router();r.use(adminAuth);
+r.get('/dashboard',async(_req,res)=>{const [products,orders,users,revenue,low]=await Promise.all([db.product.count(),db.order.count(),db.user.count(),db.order.aggregate({where:{status:{in:['PAID','PROCESSING','PACKED','SHIPPED','DELIVERED']}},_sum:{total:true}}),db.productVariant.count({where:{stock:{lte:5}}})]);res.json({products,orders,users,revenue:Number(revenue._sum.total||0),lowStock:low})});
+r.get('/orders',async(_req,res)=>res.json(await db.order.findMany({include:{items:{include:{product:true,variant:true}},address:true,payment:true,user:true},orderBy:{createdAt:'desc'},take:100})));
+r.patch('/orders/:id',async(req,res)=>res.json(await db.order.update({where:{id:req.params.id},data:{status:req.body.status}})));
+r.get('/sections',async(_req,res)=>res.json(await db.homepageSection.findMany({orderBy:{position:'asc'}})));
+r.post('/sections',async(req,res)=>res.json(await db.homepageSection.upsert({where:{key:req.body.key},create:req.body,update:req.body})));
+r.get('/settings',async(_req,res)=>res.json(await db.setting.findMany()));
+r.put('/settings/:key',async(req,res)=>res.json(await db.setting.upsert({where:{key:req.params.key},create:{key:req.params.key,value:req.body.value},update:{value:req.body.value}})));
+r.get('/media',async(_req,res)=>res.json(await db.media.findMany({orderBy:{createdAt:'desc'},take:200})));
+r.get('/audit',async(_req,res)=>res.json(await db.auditLog.findMany({include:{admin:true},orderBy:{createdAt:'desc'},take:100})));
+export default r;

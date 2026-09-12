@@ -1,0 +1,10 @@
+import Image from 'next/image';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
+import { collections } from '@/lib/catalog';
+
+export default function CollectionsPage(){return <main>
+<section className="container pt-12 md:pt-20 pb-10"><div className="eyebrow"><span className="redline"/>DRAVON / COLLECTIONS</div><div className="flex flex-col md:flex-row md:items-end justify-between gap-6"><h1 className="text-6xl md:text-[9vw] leading-[.8] font-black tracking-[-.08em] mt-4">MOVE<br/><span className="text-[var(--red)]">YOUR WAY.</span></h1><p className="max-w-sm text-xs md:text-sm leading-6 text-[var(--muted)]">Collections built around the skills, disciplines and movements that define the culture.</p></div></section>
+<section className="container grid grid-cols-2 md:grid-cols-5 gap-2 pb-20">{collections.map(([name,img],i)=><Link key={name} href={`/shop?collection=${name.toLowerCase().replaceAll(' ','-')}`} className={`group relative overflow-hidden bg-[var(--surface)] ${i===0?'md:col-span-2 md:row-span-2':''} aspect-[.78] md:aspect-auto min-h-[280px] md:min-h-[430px]`}><Image src={img} alt={name} fill sizes="(max-width:768px) 50vw, 20vw" className="object-cover transition duration-700 group-hover:scale-105"/><div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent"/><div className="absolute inset-x-4 bottom-4 text-white"><div className="text-[8px] tracking-[.2em] opacity-60">0{i+1} / COLLECTION</div><div className="flex justify-between items-end mt-2"><span className="text-lg md:text-2xl font-black">{name}</span><ArrowRight size={17}/></div></div></Link>)}</section>
+<section className="border-y border-[var(--line)]"><div className="container py-16 md:py-20 flex flex-col md:flex-row justify-between gap-8"><div><div className="eyebrow"><span className="redline"/>THE SYSTEM</div><h2 className="text-3xl md:text-5xl font-black mt-3">ONE BODY. MANY MOVEMENTS.</h2></div><p className="max-w-md text-xs leading-6 text-[var(--muted)]">From the first pull-up to a controlled planche, DRAVON follows the progression — not the shortcut.</p></div></section>
+</main>}

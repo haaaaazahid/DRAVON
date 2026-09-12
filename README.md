@@ -1,2 +1,34 @@
 # DRAVON
-Born from calisthenics and athletic movement, DRAVON is built around a simple idea: your equipment should never be the reason you hold back. Clean silhouettes, movement-first construction and a visual language that belongs equally in the gym and on the street.
+
+> DEFY GRAVITY  
+> STRENGTH · DISCIPLINE · EVOLVE
+
+DRAVON is a performance and streetwear brand built around calisthenics, fitness, athletic movement and street culture.
+
+## Tech Stack
+
+### Frontend
+- Next.js
+- TypeScript
+- Tailwind CSS
+- Framer Motion
+
+### Backend
+- Node.js
+- Express
+- TypeScript
+- Prisma
+- PostgreSQL
+
+### Infrastructure
+- Neon PostgreSQL
+- Cloudinary for media storage
+- Razorpay for payments
+- Vercel / production hosting
+
+## Project Structure
+
+```text
+dravon-production-final/
+├── frontend/
+└── backend/
