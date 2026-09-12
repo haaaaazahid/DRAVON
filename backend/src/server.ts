@@ -15,9 +15,22 @@ import payments from './routes/payments';
 
 const app = express();
 
+/*
+|--------------------------------------------------------------------------
+| CORS
+|--------------------------------------------------------------------------
+| Production frontend:
+| https://dravon-six.vercel.app
+|
+| You can also provide FRONTEND_URL in Render environment variables.
+|--------------------------------------------------------------------------
+*/
+
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
   'https://dravon-six.vercel.app',
+  process.env.FRONTEND_URL,
+
+  // Local development
   'http://localhost:3000',
   'http://localhost:3001',
 ].filter(Boolean) as string[];
@@ -31,7 +44,8 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow server-to-server / tools without an Origin header
+      // Allow requests without Origin header
+      // (health checks, server-to-server requests, etc.)
       if (!origin) {
         return callback(null, true);
       }
@@ -42,13 +56,32 @@ app.use(
 
       console.warn(`CORS blocked origin: ${origin}`);
 
-      return callback(
-        new Error(`CORS blocked origin: ${origin}`)
-      );
+      return callback(new Error(`CORS blocked origin: ${origin}`));
     },
+
     credentials: true,
+
+    methods: [
+      'GET',
+      'POST',
+      'PUT',
+      'PATCH',
+      'DELETE',
+      'OPTIONS',
+    ],
+
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+    ],
   })
 );
+
+/*
+|--------------------------------------------------------------------------
+| Middleware
+|--------------------------------------------------------------------------
+*/
 
 app.use(cookieParser());
 
@@ -69,6 +102,12 @@ app.use(
   })
 );
 
+/*
+|--------------------------------------------------------------------------
+| Health Check
+|--------------------------------------------------------------------------
+*/
+
 app.get('/health', (_req, res) => {
   res.json({
     ok: true,
@@ -77,11 +116,37 @@ app.get('/health', (_req, res) => {
   });
 });
 
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+*/
+
 app.use('/api/auth', auth);
 app.use('/api/products', products);
 app.use('/api/admin', admin);
 app.use('/api/media', media);
 app.use('/api/payments', payments);
+
+/*
+|--------------------------------------------------------------------------
+| Root Route
+|--------------------------------------------------------------------------
+*/
+
+app.get('/', (_req, res) => {
+  res.json({
+    ok: true,
+    service: 'DRAVON API',
+    message: 'API is running',
+  });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Error Handler
+|--------------------------------------------------------------------------
+*/
 
 app.use(
   (err: any, _req: any, res: any, _next: any) => {
@@ -95,6 +160,12 @@ app.use(
     });
   }
 );
+
+/*
+|--------------------------------------------------------------------------
+| Server
+|--------------------------------------------------------------------------
+*/
 
 const port = Number(process.env.PORT || 4000);
 
