@@ -12,6 +12,15 @@ const loginSchema = z.object({
   password: z.string().min(8),
 });
 
+/**
+ * Admin authentication cookie.
+ *
+ * Production:
+ * - httpOnly prevents JavaScript access
+ * - secure requires HTTPS
+ * - sameSite:none allows the cookie to be sent
+ *   between Vercel frontend and Render backend
+ */
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
@@ -33,21 +42,35 @@ r.post('/login', async (req, res) => {
       });
     }
 
+    const email = parsed.data.email.trim().toLowerCase();
+
     const admin = await db.admin.findUnique({
       where: {
-        email: parsed.data.email,
+        email,
       },
     });
 
-    if (
-      !admin ||
-      !(await bcrypt.compare(
-        parsed.data.password,
-        admin.passwordHash
-      ))
-    ) {
+    if (!admin) {
       return res.status(401).json({
         message: 'Invalid admin email or password.',
+      });
+    }
+
+    const passwordValid = await bcrypt.compare(
+      parsed.data.password,
+      admin.passwordHash
+    );
+
+    if (!passwordValid) {
+      return res.status(401).json({
+        message: 'Invalid admin email or password.',
+      });
+    }
+
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not configured.');
+      return res.status(500).json({
+        message: 'Server authentication configuration error.',
       });
     }
 
@@ -56,19 +79,17 @@ r.post('/login', async (req, res) => {
         id: admin.id,
         role: admin.role,
       },
-      process.env.JWT_SECRET!,
+      process.env.JWT_SECRET,
       {
         expiresIn: '8h',
       }
     );
 
-    res.cookie(
-      'dravon_admin',
-      token,
-      cookieOptions
-    );
+    res.cookie('dravon_admin', token, cookieOptions);
 
-    return res.json({
+    console.log(`Admin login successful: ${admin.email}`);
+
+    return res.status(200).json({
       admin: {
         id: admin.id,
         name: admin.name,
@@ -85,61 +106,50 @@ r.post('/login', async (req, res) => {
   }
 });
 
-r.post(
-  '/logout',
-  adminAuth,
-  (_req, res) => {
-    res.clearCookie(
-      'dravon_admin',
-      {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite:
-          process.env.NODE_ENV === 'production'
-            ? ('none' as const)
-            : ('lax' as const),
-        path: '/',
-      }
-    );
+r.post('/logout', adminAuth, (_req, res) => {
+  res.clearCookie('dravon_admin', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite:
+      process.env.NODE_ENV === 'production'
+        ? ('none' as const)
+        : ('lax' as const),
+    path: '/',
+  });
 
-    return res.json({
-      ok: true,
+  return res.status(200).json({
+    ok: true,
+  });
+});
+
+r.get('/me', adminAuth, async (req: AdminRequest, res) => {
+  try {
+    const admin = await db.admin.findUnique({
+      where: {
+        id: req.admin!.id,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
     });
-  }
-);
 
-r.get(
-  '/me',
-  adminAuth,
-  async (req: AdminRequest, res) => {
-    try {
-      const admin = await db.admin.findUnique({
-        where: {
-          id: req.admin!.id,
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-        },
-      });
-
-      if (!admin) {
-        return res.status(401).json({
-          message: 'Admin account not found.',
-        });
-      }
-
-      return res.json(admin);
-    } catch (error) {
-      console.error('Admin session error:', error);
-
-      return res.status(500).json({
-        message: 'Could not verify admin session.',
+    if (!admin) {
+      return res.status(401).json({
+        message: 'Admin account not found.',
       });
     }
+
+    return res.status(200).json(admin);
+  } catch (error) {
+    console.error('Admin session error:', error);
+
+    return res.status(500).json({
+      message: 'Could not verify admin session.',
+    });
   }
-);
+});
 
 export default r;
