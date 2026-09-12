@@ -1,251 +1,56 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight } from 'lucide-react';
+import {ArrowRight} from 'lucide-react';
+import {Hero} from '@/components/hero';
+import {ProductCard} from '@/components/product-card';
+import {collections} from '@/lib/catalog';
+import {getProducts} from '@/lib/api';
 
-import { Hero } from '@/components/hero';
-import { ProductCard } from '@/components/product-card';
-import { collections } from '@/lib/catalog';
-import { getProducts } from '@/lib/api';
+const movement=[['STRENGTH','Built to perform.'],['CONTROL','Made for precision.'],['DISCIPLINE','Designed for consistency.'],['MASTERY','Always improving.']];
 
-type HomeProduct = {
-  id: string;
-  slug: string;
-  name: string;
-  image: string;
-};
+export default async function Home(){
+  const products=await getProducts();
+  const featured=products.filter((p:any)=>p.featured).length?products.filter((p:any)=>p.featured):products;
+  return <main>
+    <Hero/>
 
-export default async function Home() {
-  const products = (await getProducts()) as HomeProduct[];
+    <section className="border-b border-[var(--line)] bg-[var(--fg)] text-[var(--bg)]">
+      <div className="container grid gap-5 py-5 md:grid-cols-3 md:items-center">
+        <div className="text-[9px] font-black tracking-[.2em]">ENGINEERED FOR MOVEMENT</div>
+        <div className="hidden h-px bg-[var(--muted)]/30 md:block"/>
+        <div className="text-[9px] tracking-[.14em] text-[var(--muted)] md:text-right">PERFORMANCE · STREETWEAR · CULTURE</div>
+      </div>
+    </section>
 
-  return (
-    <main>
-      <Hero />
-
-      {/* NEW DROP */}
-      <section className="container py-16 md:py-20">
-        <div className="flex flex-col md:flex-row md:items-end gap-8">
-          <div className="md:w-1/4">
-            <div className="eyebrow">
-              <span className="redline" />
-              THE NEW DROP
-            </div>
-
-            <h2 className="text-2xl font-black mt-4">
-              Engineered for movement.
-            </h2>
-
-            <p className="text-xs text-[var(--muted)] mt-2">
-              Designed for the culture.
-            </p>
-
-            <Link className="btn mt-6" href="/shop">
-              SHOP NEW DROP
-              <ArrowRight size={13} />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 flex-1">
-            {products.slice(0, 4).map((p: HomeProduct) => (
-              <Link
-                key={p.id}
-                href={`/product/${p.slug}`}
-                className="relative aspect-[1/1.2] overflow-hidden bg-[var(--surface)]"
-              >
-                <Image
-                  src={p.image}
-                  alt={p.name}
-                  fill
-                  sizes="25vw"
-                  className="object-cover hover:scale-105 transition-transform duration-700"
-                />
-              </Link>
-            ))}
-          </div>
+    <section className="container py-16 md:py-24">
+      <div className="grid gap-10 md:grid-cols-[.72fr_1.28fr] md:items-end">
+        <div>
+          <div className="eyebrow"><span className="redline"/>THE NEW DROP</div>
+          <h2 className="mt-4 text-4xl font-black uppercase leading-[.9] tracking-[-.05em] md:text-6xl">BUILT TO<br/>MOVE.</h2>
+          <p className="mt-5 max-w-sm text-xs leading-6 text-[var(--muted)]">Performance pieces made for training, movement and everyday street culture.</p>
+          <Link className="btn btn-red mt-7" href="/shop">SHOP THE DROP <ArrowRight size={13}/></Link>
         </div>
-      </section>
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">{products.slice(0,4).map((p:any)=><Link key={p.id} href={`/product/${p.slug}`} className="group relative aspect-[3/4] overflow-hidden bg-[var(--surface)]"><Image src={p.image} alt={p.name} fill sizes="25vw" className="object-cover transition-transform duration-700 group-hover:scale-105"/><div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-10 text-[8px] font-black tracking-[.14em] text-white">{p.name}</div></Link>)}</div>
+      </div>
+    </section>
 
-      {/* COLLECTIONS */}
-      <section className="border-y border-[var(--line)] py-16 md:py-20">
-        <div className="container">
-          <div className="flex justify-between items-end mb-7">
-            <div>
-              <div className="eyebrow">
-                <span className="redline" />
-                TRAIN. MOVE. MASTER.
-              </div>
+    <section className="border-y border-[var(--line)] bg-[var(--surface)] py-16 md:py-20">
+      <div className="container">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end"><div><div className="eyebrow"><span className="redline"/>TRAIN. MOVE. MASTER.</div><h2 className="mt-3 text-3xl font-black uppercase tracking-[-.04em]">SHOP BY MOVEMENT</h2></div><Link href="/collections" className="text-[9px] font-black tracking-[.16em]">EXPLORE ALL <ArrowRight size={12} className="inline"/></Link></div>
+        <div className="mt-8 grid grid-cols-2 gap-2 md:grid-cols-5">{collections.map(([name,img])=><Link key={name} href={`/shop?collection=${name.toLowerCase().replaceAll(' ','-')}`} className="group relative aspect-[.78] overflow-hidden bg-black"><Image src={img} alt={name} fill sizes="20vw" className="object-cover opacity-80 transition duration-700 group-hover:scale-105 group-hover:opacity-100"/><div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"/><div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-[9px] font-black tracking-[.14em] text-white">{name}<ArrowRight size={12}/></div></Link>)}</div>
+      </div>
+    </section>
 
-              <h2 className="text-2xl font-black mt-3">
-                Featured collections
-              </h2>
-            </div>
+    <section className="container py-16 md:py-24">
+      <div className="flex flex-col justify-between gap-4 border-b border-[var(--line)] pb-6 md:flex-row md:items-end"><div><div className="eyebrow"><span className="redline"/>BUILT TO BE WORN</div><h2 className="mt-3 text-3xl font-black uppercase tracking-[-.04em]">THE ESSENTIALS</h2></div><Link href="/shop" className="text-[9px] font-black tracking-[.16em]">VIEW ALL <ArrowRight size={12} className="inline"/></Link></div>
+      <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4 lg:grid-cols-6">{featured.slice(0,6).map((p:any)=><ProductCard p={p} key={p.id}/>)}</div>
+    </section>
 
-            <Link
-              href="/collections"
-              className="text-[9px] tracking-[.18em] font-bold"
-            >
-              EXPLORE COLLECTIONS
-              <ArrowRight size={12} className="inline" />
-            </Link>
-          </div>
+    <section className="container grid gap-px border border-[var(--line)] bg-[var(--line)] md:grid-cols-[1.05fr_1fr]">
+      <div className="relative min-h-[460px] bg-[var(--surface)]"><Image src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=82" alt="Athlete training" fill sizes="50vw" className="object-cover grayscale"/></div>
+      <div className="bg-[var(--bg)] p-8 md:p-14"><div className="eyebrow text-[var(--red)]">MORE THAN APPAREL.</div><h2 className="mt-4 text-4xl font-black uppercase leading-[.9] tracking-[-.05em] md:text-6xl">THE MOVEMENT<br/>IS BIGGER.</h2><p className="mt-6 max-w-md text-xs leading-6 text-[var(--muted)]">DRAVON was created from the culture of calisthenics — where strength, control, discipline and consistency matter. Every piece represents the mindset of people who refuse to stop improving.</p><div className="mt-8 grid grid-cols-2 gap-y-5">{movement.map(([a,b])=><div key={a}><div className="text-[10px] font-black tracking-[.15em]"><span className="mr-2 text-[var(--red)]">+</span>{a}</div><div className="mt-1 text-[9px] text-[var(--muted)]">{b}</div></div>)}</div><Link href="/about" className="btn mt-9">OUR STORY <ArrowRight size={13}/></Link></div>
+    </section>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            {collections.map(([name, img]) => (
-              <Link
-                key={name}
-                href={`/shop?collection=${name
-                  .toLowerCase()
-                  .replaceAll(' ', '-')}`}
-                className="relative aspect-[.75] overflow-hidden group"
-              >
-                <Image
-                  src={img}
-                  alt={name}
-                  fill
-                  sizes="20vw"
-                  className="object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent" />
-
-                <div className="absolute bottom-3 left-3 right-3 flex justify-between text-white text-[9px] tracking-[.13em] font-bold">
-                  {name}
-                  <ArrowRight size={12} />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* BEST SELLERS */}
-      <section className="container py-16 md:py-20">
-        <div className="flex justify-between items-end mb-7">
-          <div>
-            <div className="eyebrow">
-              <span className="redline" />
-              BUILT TO BE WORN
-            </div>
-
-            <h2 className="text-2xl font-black mt-3">
-              Best sellers
-            </h2>
-          </div>
-
-          <Link
-            href="/shop"
-            className="text-[9px] tracking-[.18em] font-bold"
-          >
-            VIEW ALL
-            <ArrowRight size={12} className="inline" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-x-3 gap-y-10">
-          {products.map((p: HomeProduct) => (
-            <ProductCard p={p} key={p.id} />
-          ))}
-        </div>
-      </section>
-
-      {/* BRAND STORY */}
-      <section className="container grid md:grid-cols-[1fr_1.3fr_.9fr] gap-px bg-[var(--line)] border border-[var(--line)]">
-        <div className="relative min-h-[360px] bg-[var(--surface)]">
-          <Image
-            src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1100&q=82"
-            alt="DRAVON athlete"
-            fill
-            className="object-cover"
-          />
-        </div>
-
-        <div className="bg-[var(--bg)] p-8 md:p-10">
-          <div className="eyebrow text-[var(--red)]">
-            MORE THAN APPAREL.
-          </div>
-
-          <h2 className="text-2xl font-black mt-4">
-            The movement is bigger than the garment.
-          </h2>
-
-          <p className="text-xs leading-6 text-[var(--muted)] mt-4">
-            DRAVON was created from the culture of calisthenics — where
-            strength, control, discipline and consistency matter. Every
-            piece represents the mindset of people who refuse to stop
-            improving.
-          </p>
-
-          <div className="grid grid-cols-2 gap-4 mt-7">
-            {[
-              'STRENGTH',
-              'DISCIPLINE',
-              'CONTROL',
-              'BALANCE',
-              'ENDURANCE',
-              'MASTERY',
-            ].map((x) => (
-              <div
-                key={x}
-                className="text-[9px] tracking-[.16em] font-bold"
-              >
-                <span className="text-[var(--red)] mr-2">+</span>
-                {x}
-              </div>
-            ))}
-          </div>
-
-          <Link href="/about" className="btn mt-8">
-            OUR STORY
-            <ArrowRight size={13} />
-          </Link>
-        </div>
-
-        <div className="bg-[var(--fg)] text-[var(--bg)] p-8 md:p-10 flex flex-col justify-center">
-          <div className="eyebrow text-[var(--red2)]">
-            JOIN THE MOVEMENT.
-          </div>
-
-          <h3 className="text-2xl font-black mt-4">
-            Train hard. Move freely. Master yourself.
-          </h3>
-
-          <Link href="/community" className="btn btn-red mt-7">
-            JOIN THE COMMUNITY
-          </Link>
-        </div>
-      </section>
-
-      {/* COMMUNITY */}
-      <section className="container py-16 text-center">
-        <div className="eyebrow">@DRAVONINDIA</div>
-
-        <h2 className="text-3xl font-black mt-3">
-          THE COMMUNITY
-        </h2>
-
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-1 mt-7">
-          {[
-            '1571019613454-1cb2f99b2d8b',
-            '1517836357463-d25dfeac3438',
-            '1599058917765-a780eda07a3e',
-            '1541534741688-6078c6bfb5c5',
-            '1584735175315-9d5df23860e6',
-            '1517963879433-6ad2b056d712',
-          ].map((id) => (
-            <div
-              className="aspect-square relative overflow-hidden"
-              key={id}
-            >
-              <Image
-                src={`https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=500&q=75`}
-                alt="Community"
-                fill
-                sizes="16vw"
-                className="object-cover hover:scale-105 transition"
-              />
-            </div>
-          ))}
-        </div>
-      </section>
-    </main>
-  );
+    <section className="container py-16 md:py-24"><div className="grid gap-10 md:grid-cols-[1fr_auto] md:items-end"><div><div className="eyebrow">@DRAVONINDIA</div><h2 className="mt-3 text-4xl font-black uppercase tracking-[-.05em] md:text-6xl">FOLLOW THE<br/>MOVEMENT.</h2></div><Link href="/community" className="btn">EXPLORE COMMUNITY <ArrowRight size={13}/></Link></div><div className="mt-8 grid grid-cols-3 gap-1 md:grid-cols-6">{['1571019613454-1cb2f99b2d8b','1517836357463-d25dfeac3438','1599058917765-a780eda07a3e','1541534741688-6078c6bfb5c5','1584735175315-9d5df23860e6','1517963879433-6ad2b056d712'].map(id=><div className="relative aspect-square overflow-hidden" key={id}><Image src={`https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=500&q=75`} alt="DRAVON community" fill sizes="16vw" className="object-cover grayscale transition duration-500 hover:scale-105 hover:grayscale-0"/></div>)}</div></section>
+  </main>
 }

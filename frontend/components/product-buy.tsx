@@ -1,71 +1,226 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
-import { ShoppingBag } from 'lucide-react';
-import { useCart } from './cart';
+import { useMemo, useState } from "react";
+import { ShoppingBag, Check } from "lucide-react";
+import { useCart } from "./cart";
 
-type Variant = { sku?: string; color?: string; size?: string; stock?: number };
+function swatch(color: string) {
+  const c = color.toLowerCase();
 
-function stockLabel(stock: number) {
-  if (stock <= 0) return 'SOLD OUT';
-  return stock <= 10 ? `${stock} left` : '';
+  if (c === "white") return "#fff";
+  if (c === "grey" || c === "gray") return "#777";
+  if (c === "red") return "#8b0000";
+
+  return "#111";
 }
 
 export function ProductBuy({ p }: any) {
-  const variants: Variant[] = Array.isArray(p.variants) ? p.variants : [];
-  const colors = Array.from(new Set(variants.map((v) => v.color).filter(Boolean))) as string[];
-  const fallbackSizes = Array.from(new Set((p.sizes || []).filter(Boolean))) as string[];
-  const initialColor = colors[0] || 'Black';
+  const variants = p.variants || [];
+
+  const colors = Array.from(
+    new Set(
+      variants
+        .map((v: any) => v.color)
+        .filter(Boolean)
+    )
+  ) as string[];
+
+  const initialColor =
+    colors[0] || p.colors?.[0] || "Black";
+
   const [color, setColor] = useState(initialColor);
 
-  const colorVariants = useMemo(() => variants.filter((v) => (v.color || initialColor) === color), [variants, color, initialColor]);
-  const sizes = Array.from(new Set(colorVariants.map((v) => v.size).filter(Boolean))) as string[];
-  const availableFirst = colorVariants.find((v) => Number(v.stock) > 0)?.size;
-  const [size, setSize] = useState(availableFirst || sizes[0] || fallbackSizes[0] || 'M');
-  const selectedVariant = colorVariants.find((v) => v.size === size);
-  const selectedStock = Number(selectedVariant?.stock ?? 0);
+  const colorVariants = useMemo(
+    () =>
+      variants.filter(
+        (v: any) =>
+          !v.color || v.color === color
+      ),
+    [variants, color]
+  );
+
+  const sizes = Array.from(
+    new Set(
+      colorVariants
+        .map((v: any) => v.size)
+        .filter(Boolean)
+    )
+  ) as string[];
+
+  const firstAvailable =
+    colorVariants.find(
+      (v: any) => Number(v.stock) > 0
+    )?.size ||
+    sizes[0] ||
+    "M";
+
+  const [size, setSize] = useState(firstAvailable);
+
+  const selected = variants.find(
+    (v: any) =>
+      v.color === color &&
+      v.size === size
+  );
+
+  const stock = Number(selected?.stock || 0);
+  const available = stock > 0;
+
   const { add, open } = useCart();
 
-  function selectColor(nextColor: string) {
-    setColor(nextColor);
-    const next = variants.find((v) => v.color === nextColor && Number(v.stock) > 0) || variants.find((v) => v.color === nextColor);
-    setSize(next?.size || 'M');
-  }
+  const chooseColor = (next: string) => {
+    setColor(next);
 
-  function addToCart() {
-    if (!selectedVariant || selectedStock <= 0) return;
-    add({ id: String(p.id), name: p.name, price: Number(p.price || 0), image: p.image || p.gallery?.[0] || '', size, color, quantity: 1 });
+    const list = variants.filter(
+      (v: any) => v.color === next
+    );
+
+    setSize(
+      list.find(
+        (v: any) => Number(v.stock) > 0
+      )?.size ||
+        list[0]?.size ||
+        "M"
+    );
+  };
+
+  const addToCart = () => {
+    if (!available || !selected) return;
+
+    add({
+      id: p.id,
+      variantId: selected.id,
+      sku: selected.sku,
+      name: p.name,
+      price: Number(p.price),
+      image: p.image,
+      size,
+      color,
+      quantity: 1,
+    });
+
     open();
-  }
-
-  function buyNow() {
-    if (!selectedVariant || selectedStock <= 0) return;
-    add({ id: String(p.id), name: p.name, price: Number(p.price || 0), image: p.image || p.gallery?.[0] || '', size, color, quantity: 1 });
-    window.location.href = '/checkout';
-  }
+  };
 
   return (
-    <div className="mt-7">
-      <div className="text-[9px] tracking-[.15em] font-bold mb-2">COLOUR — {color}</div>
-      <div className="flex gap-2 mb-5">
-        {colors.map((x) => <button key={x} type="button" onClick={() => selectColor(x)} className={`w-7 h-7 rounded-full border-2 ${color === x ? 'border-[var(--red)]' : 'border-[var(--line)]'}`} style={{ background: x.toLowerCase() === 'white' ? '#fff' : x.toLowerCase() === 'grey' ? '#777' : '#111' }} aria-label={`Select ${x}`} />)}
+    <div className="mt-8">
+      {/* COLOR */}
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] font-black tracking-[.16em]">
+          COLOUR
+        </span>
+
+        <span className="text-[10px] text-[var(--muted)]">
+          {color}
+        </span>
       </div>
 
-      <div className="text-[9px] tracking-[.15em] font-bold mb-2">SIZE</div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {sizes.map((x) => {
-          const variant = colorVariants.find((v) => v.size === x);
-          const stock = Number(variant?.stock || 0);
-          const label = stockLabel(stock);
-          return <button key={x} type="button" disabled={stock <= 0} onClick={() => setSize(x)} className={`min-h-[58px] border border-[var(--line)] text-[9px] font-bold flex flex-col items-center justify-center gap-1 ${size === x && stock > 0 ? 'bg-[var(--fg)] text-[var(--bg)]' : ''} ${stock <= 0 ? 'opacity-45 cursor-not-allowed line-through' : ''}`}><span>{x}</span>{label && <span className="text-[8px] tracking-[.06em] font-medium no-underline">{label}</span>}</button>;
+      <div className="mt-3 flex flex-wrap gap-3">
+        {colors.map((x: string) => (
+          <button
+            type="button"
+            key={x}
+            onClick={() => chooseColor(x)}
+            aria-label={`Select ${x}`}
+            className={`flex h-9 w-9 items-center justify-center rounded-full border-2 ${
+              color === x
+                ? "border-[var(--red)]"
+                : "border-[var(--line)]"
+            }`}
+          >
+            <span
+              className="h-6 w-6 rounded-full border border-black/10"
+              style={{
+                background: swatch(x),
+              }}
+            />
+          </button>
+        ))}
+      </div>
+
+      {/* SIZE */}
+      <div className="mt-7 flex items-center justify-between">
+        <span className="text-[9px] font-black tracking-[.16em]">
+          SELECT SIZE
+        </span>
+
+        {selected && (
+          <span
+            className={`text-[9px] font-bold tracking-[.12em] ${
+              available && stock <= 10
+                ? "text-[var(--red)]"
+                : "text-[var(--muted)]"
+            }`}
+          >
+            {available
+              ? stock <= 10
+                ? `${stock} LEFT`
+                : "IN STOCK"
+              : "SOLD OUT"}
+          </span>
+        )}
+      </div>
+
+      <div className="mt-3 grid grid-cols-4 gap-2">
+        {sizes.map((x: string) => {
+          const variant = colorVariants.find(
+            (item: any) => item.size === x
+          );
+
+          const n = Number(
+            variant?.stock || 0
+          );
+
+          return (
+            <button
+              type="button"
+              key={x}
+              disabled={n <= 0}
+              onClick={() => setSize(x)}
+              className={`relative border py-3 text-[9px] font-black transition ${
+                size === x && n > 0
+                  ? "border-[var(--fg)] bg-[var(--fg)] text-[var(--bg)]"
+                  : ""
+              } ${
+                n <= 0
+                  ? "cursor-not-allowed opacity-35 line-through"
+                  : ""
+              }`}
+            >
+              {x}
+
+              {n > 0 && n <= 10 && (
+                <small className="absolute -right-1 -top-2 bg-[var(--red)] px-1 py-0.5 text-[6px] text-white no-underline">
+                  {n} LEFT
+                </small>
+              )}
+            </button>
+          );
         })}
       </div>
 
-      {selectedVariant && selectedStock > 0 && selectedStock <= 10 && <div className="text-[9px] text-[var(--red)] font-bold tracking-[.12em] mt-3">ONLY {selectedStock} LEFT IN THIS SIZE</div>}
-      {selectedVariant && selectedStock <= 0 && <div className="text-[9px] text-[var(--red)] font-bold tracking-[.12em] mt-3">SELECT AN AVAILABLE SIZE</div>}
+      {/* CTA */}
+      <button
+        type="button"
+        disabled={!available}
+        onClick={addToCart}
+        className="btn btn-red mt-5 w-full py-4 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <ShoppingBag size={14} />
 
-      <button type="button" disabled={!selectedVariant || selectedStock <= 0} className="btn btn-red w-full mt-5 disabled:opacity-40 disabled:cursor-not-allowed" onClick={addToCart}><ShoppingBag size={14} /> ADD TO CART</button>
-      <button type="button" disabled={!selectedVariant || selectedStock <= 0} className="w-full border border-[var(--line)] py-3 mt-2 text-[9px] tracking-[.16em] font-black disabled:opacity-40 disabled:cursor-not-allowed" onClick={buyNow}>BUY NOW</button>
+        {available
+          ? "ADD TO CART"
+          : "SOLD OUT"}
+      </button>
+
+      {available && (
+        <div className="mt-3 flex items-center justify-center gap-2 text-[8px] font-bold tracking-[.12em] text-[var(--muted)]">
+          <Check
+            size={12}
+            className="text-[var(--red)]"
+          />
+          SECURE CHECKOUT · FAST DISPATCH
+        </div>
+      )}
     </div>
   );
 }

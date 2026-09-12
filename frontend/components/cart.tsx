@@ -1,89 +1,264 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Minus, Plus, X } from 'lucide-react';
-import Link from 'next/link';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import Link from "next/link";
+import Image from "next/image";
+import {
+  X,
+  Minus,
+  Plus,
+  Trash2,
+  ShoppingBag,
+  ArrowRight,
+} from "lucide-react";
 
 export type CartItem = {
   id: string;
+  variantId?: string;
+  sku?: string;
   name: string;
+  slug?: string;
   price: number;
-  image: string;
-  size: string;
-  color: string;
+  image?: string;
+  color?: string;
+  size?: string;
   quantity: number;
 };
 
-type CartContextValue = {
+type AddItem = {
+  id: string;
+  variantId?: string;
+  sku?: string;
+  name: string;
+  slug?: string;
+  price: number;
+  image?: string;
+  color?: string;
+  size?: string;
+  quantity?: number;
+};
+
+type CartContextType = {
   items: CartItem[];
   count: number;
   subtotal: number;
+
   isOpen: boolean;
-  add: (item: CartItem) => void;
-  remove: (id: string, size?: string, color?: string) => void;
-  updateQuantity: (id: string, size: string, color: string, quantity: number) => void;
-  clear: () => void;
   open: () => void;
   close: () => void;
-  // Kept as an alias so older components using setOpen(true) do not break.
-  setOpen: (value?: boolean) => void;
+  setOpen: (value: boolean) => void;
+
+  add: (item: AddItem) => void;
+  remove: (id: string, color?: string, size?: string) => void;
+  updateQuantity: (
+    id: string,
+    quantity: number,
+    color?: string,
+    size?: string
+  ) => void;
+  clear: () => void;
 };
 
-const CartContext = createContext<CartContextValue | null>(null);
-const STORAGE_KEY = 'dravon-cart';
+const CartContext = createContext<CartContextType | null>(null);
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
+const STORAGE_KEY = "dravon-cart";
+
+function getItemKey(
+  id: string,
+  color?: string,
+  size?: string
+) {
+  return `${id}__${color || ""}__${size || ""}`;
+}
+
+export function CartProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setItems(JSON.parse(saved));
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-    } finally {
-      setHydrated(true);
+
+      if (saved) {
+        const parsed = JSON.parse(saved);
+
+        if (Array.isArray(parsed)) {
+          setItems(parsed);
+        }
+      }
+    } catch (error) {
+      console.error("DRAVON cart load error:", error);
     }
   }, []);
 
   useEffect(() => {
-    if (hydrated) localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items, hydrated]);
+    if (!mounted) return;
 
-  const value = useMemo<CartContextValue>(() => ({
-    items,
-    count: items.reduce((sum, item) => sum + item.quantity, 0),
-    subtotal: items.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    isOpen,
-    add: (item) => setItems((current) => {
-      const index = current.findIndex(
-        (x) => x.id === item.id && x.size === item.size && x.color === item.color,
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(items)
       );
-      if (index === -1) return [...current, item];
-      const next = [...current];
-      next[index] = { ...next[index], quantity: next[index].quantity + item.quantity };
-      return next;
-    }),
-    remove: (id, size, color) => setItems((current) =>
-      current.filter((item) => !(item.id === id && (size === undefined || item.size === size) && (color === undefined || item.color === color))),
-    ),
-    updateQuantity: (id, size, color, quantity) => setItems((current) =>
-      current.flatMap((item) => {
-        if (item.id !== id || item.size !== size || item.color !== color) return [item];
-        return quantity > 0 ? [{ ...item, quantity }] : [];
-      }),
-    ),
-    clear: () => setItems([]),
-    open: () => setIsOpen(true),
-    close: () => setIsOpen(false),
-    setOpen: (value = true) => setIsOpen(value),
-  }), [items, isOpen]);
+    } catch (error) {
+      console.error("DRAVON cart save error:", error);
+    }
+  }, [items, mounted]);
+
+  const add = (item: AddItem) => {
+    setItems((current) => {
+      const existingIndex = current.findIndex(
+        (existing) =>
+          getItemKey(
+            existing.id,
+            existing.color,
+            existing.size
+          ) ===
+          getItemKey(item.id, item.color, item.size)
+      );
+
+      if (existingIndex !== -1) {
+        return current.map((existing, index) =>
+          index === existingIndex
+            ? {
+                ...existing,
+                quantity:
+                  existing.quantity +
+                  (item.quantity ?? 1),
+              }
+            : existing
+        );
+      }
+
+      return [
+        ...current,
+        {
+          id: String(item.id),
+          variantId: item.variantId,
+          sku: item.sku,
+          name: item.name,
+          slug: item.slug,
+          price: Number(item.price),
+          image: item.image,
+          color: item.color,
+          size: item.size,
+          quantity: item.quantity ?? 1,
+        },
+      ];
+    });
+  };
+
+  const remove = (
+    id: string,
+    color?: string,
+    size?: string
+  ) => {
+    setItems((current) =>
+      current.filter(
+        (item) =>
+          getItemKey(
+            item.id,
+            item.color,
+            item.size
+          ) !== getItemKey(id, color, size)
+      )
+    );
+  };
+
+  const updateQuantity = (
+    id: string,
+    quantity: number,
+    color?: string,
+    size?: string
+  ) => {
+    if (quantity <= 0) {
+      remove(id, color, size);
+      return;
+    }
+
+    setItems((current) =>
+      current.map((item) =>
+        getItemKey(
+          item.id,
+          item.color,
+          item.size
+        ) === getItemKey(id, color, size)
+          ? {
+              ...item,
+              quantity,
+            }
+          : item
+      )
+    );
+  };
+
+  const clear = () => {
+    setItems([]);
+  };
+
+  const open = () => {
+    setIsOpen(true);
+  };
+
+  const close = () => {
+    setIsOpen(false);
+  };
+
+  const setOpen = (value: boolean) => {
+    setIsOpen(value);
+  };
+
+  const count = useMemo(
+    () =>
+      items.reduce(
+        (total, item) => total + item.quantity,
+        0
+      ),
+    [items]
+  );
+
+  const subtotal = useMemo(
+    () =>
+      items.reduce(
+        (total, item) =>
+          total +
+          Number(item.price) * item.quantity,
+        0
+      ),
+    [items]
+  );
+
+  const value: CartContextType = {
+    items,
+    count,
+    subtotal,
+    isOpen,
+    open,
+    close,
+    setOpen,
+    add,
+    remove,
+    updateQuantity,
+    clear,
+  };
 
   return (
     <CartContext.Provider value={value}>
       {children}
+
       <CartDrawer />
     </CartContext.Provider>
   );
@@ -91,60 +266,385 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
 export function useCart() {
   const context = useContext(CartContext);
-  if (!context) throw new Error('useCart must be used inside CartProvider');
+
+  if (!context) {
+    throw new Error(
+      "useCart must be used inside <CartProvider>"
+    );
+  }
+
   return context;
 }
 
+/* --------------------------------------------------
+   CART DRAWER
+-------------------------------------------------- */
+
 function CartDrawer() {
-  const { items, subtotal, isOpen, close, remove, updateQuantity } = useCart();
+  const {
+    items,
+    count,
+    subtotal,
+    isOpen,
+    close,
+    remove,
+    updateQuantity,
+  } = useCart();
+
+  if (!isOpen) return null;
 
   return (
-    <div
-      className={`fixed inset-0 z-[70] transition ${isOpen ? 'visible bg-black/50' : 'invisible pointer-events-none bg-transparent'}`}
-      onClick={close}
-      aria-hidden={!isOpen}
-    >
+    <>
+      {/* BACKDROP */}
+      <div
+        className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-[2px]"
+        onClick={close}
+        aria-hidden="true"
+      />
+
+      {/* DRAWER */}
       <aside
-        onClick={(event) => event.stopPropagation()}
-        className={`absolute right-0 top-0 h-full w-[min(440px,92vw)] bg-[var(--bg)] border-l border-[var(--line)] transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
-        aria-label="Shopping bag"
+        className="
+          fixed
+          right-0
+          top-0
+          z-[100]
+          flex
+          h-[100dvh]
+          w-full
+          max-w-[440px]
+          flex-col
+          border-l
+          border-[var(--line)]
+          bg-[var(--bg)]
+          text-[var(--fg)]
+          shadow-2xl
+        "
+        aria-label="Shopping cart"
       >
-        <div className="flex justify-between items-center px-5 py-5 border-b border-[var(--line)]">
-          <div className="font-black tracking-[.18em]">YOUR BAG</div>
-          <button onClick={close} aria-label="Close bag"><X size={20} /></button>
-        </div>
-
-        <div className="px-5 py-5 space-y-5 overflow-y-auto max-h-[calc(100vh-190px)]">
-          {items.length === 0 ? (
-            <div className="py-20 text-center text-sm text-[var(--muted)]">Your bag is empty.</div>
-          ) : items.map((item) => (
-            <div key={`${item.id}-${item.size}-${item.color}`} className="flex gap-3">
-              <img src={item.image} className="w-20 h-24 object-cover bg-[var(--surface)]" alt={item.name} />
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold truncate">{item.name}</div>
-                <div className="text-[10px] text-[var(--muted)] mt-1">{item.color} / {item.size}</div>
-                <div className="mt-2 font-bold text-xs">₹{item.price.toLocaleString('en-IN')}</div>
-                <div className="flex items-center gap-2 mt-3">
-                  <button onClick={() => updateQuantity(item.id, item.size, item.color, item.quantity - 1)} className="border border-[var(--line)] p-1" aria-label="Decrease quantity"><Minus size={11} /></button>
-                  <span className="text-xs min-w-4 text-center">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.id, item.size, item.color, item.quantity + 1)} className="border border-[var(--line)] p-1" aria-label="Increase quantity"><Plus size={11} /></button>
-                  <button onClick={() => remove(item.id, item.size, item.color)} className="ml-auto text-[10px] underline">REMOVE</button>
-                </div>
-              </div>
+        {/* HEADER */}
+        <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-5">
+          <div>
+            <div className="eyebrow">
+              YOUR BAG
             </div>
-          ))}
+
+            <h2 className="mt-1 text-xl font-black tracking-[-0.03em]">
+              CART
+              {count > 0 && (
+                <span className="ml-2 text-sm font-medium text-[var(--muted)]">
+                  ({count})
+                </span>
+              )}
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={close}
+            aria-label="Close cart"
+            className="
+              flex
+              h-10
+              w-10
+              items-center
+              justify-center
+              border
+              border-[var(--line)]
+              transition
+              hover:border-[var(--fg)]
+            "
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 p-5 bg-[var(--bg)] border-t border-[var(--line)]">
-          <div className="flex justify-between font-bold mb-4">
-            <span>SUBTOTAL</span>
-            <span>₹{subtotal.toLocaleString('en-IN')}</span>
-          </div>
-          <Link onClick={close} href="/checkout" className="btn btn-red w-full">
-            CHECKOUT <ArrowRight size={14} />
-          </Link>
+        {/* CONTENT */}
+        <div className="flex-1 overflow-y-auto">
+          {items.length === 0 ? (
+            <EmptyCart onClose={close} />
+          ) : (
+            <div className="divide-y divide-[var(--line)]">
+              {items.map((item) => (
+                <CartRow
+                  key={getItemKey(
+                    item.id,
+                    item.color,
+                    item.size
+                  )}
+                  item={item}
+                  onRemove={() =>
+                    remove(
+                      item.id,
+                      item.color,
+                      item.size
+                    )
+                  }
+                  onDecrease={() =>
+                    updateQuantity(
+                      item.id,
+                      item.quantity - 1,
+                      item.color,
+                      item.size
+                    )
+                  }
+                  onIncrease={() =>
+                    updateQuantity(
+                      item.id,
+                      item.quantity + 1,
+                      item.color,
+                      item.size
+                    )
+                  }
+                />
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* FOOTER */}
+        {items.length > 0 && (
+          <div className="border-t border-[var(--line)] bg-[var(--bg)] p-5">
+            <div className="mb-2 flex items-center justify-between text-xs">
+              <span className="text-[var(--muted)]">
+                SUBTOTAL
+              </span>
+
+              <span className="font-bold">
+                ₹{subtotal.toLocaleString("en-IN")}
+              </span>
+            </div>
+
+            <p className="mb-4 text-[10px] leading-relaxed text-[var(--muted)]">
+              Shipping and taxes are calculated at
+              checkout.
+            </p>
+
+            <Link
+              href="/checkout"
+              onClick={close}
+              className="
+                flex
+                h-12
+                w-full
+                items-center
+                justify-center
+                gap-2
+                bg-[var(--fg)]
+                px-5
+                text-[10px]
+                font-black
+                tracking-[0.18em]
+                text-[var(--bg)]
+                transition
+                hover:bg-[var(--red)]
+                hover:text-white
+              "
+            >
+              CHECKOUT
+              <ArrowRight size={14} />
+            </Link>
+
+            <Link
+              href="/shop"
+              onClick={close}
+              className="
+                mt-2
+                flex
+                h-11
+                w-full
+                items-center
+                justify-center
+                border
+                border-[var(--line)]
+                text-[10px]
+                font-black
+                tracking-[0.18em]
+                transition
+                hover:border-[var(--fg)]
+              "
+            >
+              CONTINUE SHOPPING
+            </Link>
+          </div>
+        )}
       </aside>
+    </>
+  );
+}
+
+/* --------------------------------------------------
+   CART ROW
+-------------------------------------------------- */
+
+function CartRow({
+  item,
+  onRemove,
+  onDecrease,
+  onIncrease,
+}: {
+  item: CartItem;
+  onRemove: () => void;
+  onDecrease: () => void;
+  onIncrease: () => void;
+}) {
+  return (
+    <div className="flex gap-4 p-5">
+      {/* IMAGE */}
+      <div className="relative h-28 w-24 shrink-0 overflow-hidden bg-black/5 dark:bg-white/5">
+        {item.image ? (
+          <Image
+            src={item.image}
+            alt={item.name}
+            fill
+            sizes="96px"
+            className="object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <ShoppingBag
+              size={20}
+              className="text-[var(--muted)]"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* DETAILS */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-black uppercase">
+              {item.name}
+            </h3>
+
+            {(item.size || item.color) && (
+              <div className="mt-2 space-y-1 text-[10px] text-[var(--muted)]">
+                {item.size && (
+                  <div>
+                    SIZE:{" "}
+                    <span className="text-[var(--fg)]">
+                      {item.size}
+                    </span>
+                  </div>
+                )}
+
+                {item.color && (
+                  <div>
+                    COLOR:{" "}
+                    <span className="text-[var(--fg)]">
+                      {item.color}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label={`Remove ${item.name}`}
+            className="shrink-0 text-[var(--muted)] transition hover:text-[var(--red)]"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          {/* QUANTITY */}
+          <div className="flex h-8 items-center border border-[var(--line)]">
+            <button
+              type="button"
+              onClick={onDecrease}
+              className="flex h-full w-8 items-center justify-center transition hover:bg-black/5 dark:hover:bg-white/5"
+              aria-label="Decrease quantity"
+            >
+              <Minus size={12} />
+            </button>
+
+            <span className="flex w-8 justify-center text-xs font-bold">
+              {item.quantity}
+            </span>
+
+            <button
+              type="button"
+              onClick={onIncrease}
+              className="flex h-full w-8 items-center justify-center transition hover:bg-black/5 dark:hover:bg-white/5"
+              aria-label="Increase quantity"
+            >
+              <Plus size={12} />
+            </button>
+          </div>
+
+          {/* PRICE */}
+          <span className="text-sm font-black">
+            ₹
+            {(
+              Number(item.price) *
+              item.quantity
+            ).toLocaleString("en-IN")}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------------------------
+   EMPTY CART
+-------------------------------------------------- */
+
+function EmptyCart({
+  onClose,
+}: {
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex h-full min-h-[400px] flex-col items-center justify-center px-8 text-center">
+      <div className="mb-5 flex h-16 w-16 items-center justify-center border border-[var(--line)]">
+        <ShoppingBag
+          size={23}
+          strokeWidth={1.5}
+        />
+      </div>
+
+      <div className="eyebrow mb-2">
+        NOTHING HERE YET
+      </div>
+
+      <h3 className="text-2xl font-black tracking-[-0.04em]">
+        YOUR BAG IS EMPTY.
+      </h3>
+
+      <p className="mt-3 max-w-[280px] text-xs leading-relaxed text-[var(--muted)]">
+        Find something built for your next
+        movement.
+      </p>
+
+      <Link
+        href="/shop"
+        onClick={onClose}
+        className="
+          mt-7
+          flex
+          h-11
+          items-center
+          gap-2
+          bg-[var(--fg)]
+          px-6
+          text-[10px]
+          font-black
+          tracking-[0.18em]
+          text-[var(--bg)]
+          transition
+          hover:bg-[var(--red)]
+          hover:text-white
+        "
+      >
+        SHOP DRAVON
+        <ArrowRight size={13} />
+      </Link>
     </div>
   );
 }
