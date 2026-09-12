@@ -114,75 +114,70 @@ const body = z.object({
   variants: z.array(variant).optional(),
 });
 
-r.post('/', adminAuth, async (req: AdminRequest, res) => {
-  const parsed = body.safeParse(req.body);
+type ProductUpdate = Partial<z.infer<typeof body>>;
 
-  if (!parsed.success) {
-    return res.status(400).json({
-      message:
-        parsed.error.issues[0]?.message || 'Invalid product',
-    });
+/**
+ * Checks whether the update contains duplicate SKUs.
+ */
+function findDuplicateSku(variants?: z.infer<typeof variant>[]) {
+  if (!variants) return null;
+
+  const seen = new Set<string>();
+
+  for (const v of variants) {
+    const sku = v.sku.trim().toLowerCase();
+
+    if (seen.has(sku)) {
+      return v.sku;
+    }
+
+    seen.add(sku);
   }
 
-  const x = parsed.data;
+  return null;
+}
 
-  const created = await db.product.create({
-    data: {
-      name: x.name,
-      slug: x.slug,
-      description: x.description,
-      price: x.price,
-      mrp: x.mrp || 0,
+/**
+ * Checks whether any SKU belongs to another product.
+ */
+async function findConflictingSku(
+  productId: string,
+  variants?: z.infer<typeof variant>[],
+) {
+  if (!variants?.length) return null;
 
-      published: x.published ?? false,
-      featured: x.featured ?? false,
+  const skus = variants.map((v) => v.sku.trim());
 
-      fabric: x.fabric,
-      gsm: x.gsm,
-      fit: x.fit,
-
-      careInstructions: x.careInstructions,
-
-      seoTitle: x.seoTitle,
-      seoDescription: x.seoDescription,
-
-      images: {
-        create: (x.images || []).map((i, n) => ({
-          ...i,
-          position: n,
-        })),
+  const existing = await db.productVariant.findFirst({
+    where: {
+      sku: {
+        in: skus,
       },
-
-      variants: {
-        create: x.variants || [],
+      productId: {
+        not: productId,
       },
     },
-
-    include: {
-      images: true,
-      variants: true,
+    select: {
+      sku: true,
     },
   });
 
-  res.status(201).json(created);
-});
+  return existing?.sku || null;
+}
 
-r.put('/:id', adminAuth, async (req: AdminRequest, res) => {
-  const productId = String(req.params.id);
-
-  const parsed = body.partial().safeParse(req.body);
-
-  if (!parsed.success) {
-    return res.status(400).json({
-      message:
-        parsed.error.issues[0]?.message || 'Invalid product',
-    });
-  }
-
-  const x = parsed.data;
-
-  try {
-    const updated = await db.$transaction(async (tx) => {
+/**
+ * Performs the actual product update.
+ *
+ * The transaction uses Serializable isolation so two simultaneous
+ * admin saves cannot corrupt the variant replacement operation.
+ */
+async function updateProduct(
+  productId: string,
+  x: ProductUpdate,
+  req: AdminRequest,
+) {
+  return db.$transaction(
+    async (tx) => {
       const before = await tx.product.findUnique({
         where: {
           id: productId,
@@ -202,61 +197,83 @@ r.put('/:id', adminAuth, async (req: AdminRequest, res) => {
         },
 
         data: {
-          name: x.name,
-          slug: x.slug,
-          description: x.description,
-          price: x.price,
-          mrp: x.mrp,
+          ...(x.name !== undefined ? { name: x.name } : {}),
+          ...(x.slug !== undefined ? { slug: x.slug } : {}),
+          ...(x.description !== undefined
+            ? { description: x.description }
+            : {}),
+          ...(x.price !== undefined ? { price: x.price } : {}),
+          ...(x.mrp !== undefined ? { mrp: x.mrp } : {}),
 
-          published: x.published,
-          featured: x.featured,
+          ...(x.published !== undefined
+            ? { published: x.published }
+            : {}),
+          ...(x.featured !== undefined
+            ? { featured: x.featured }
+            : {}),
 
-          fabric: x.fabric,
-          gsm: x.gsm,
-          fit: x.fit,
+          ...(x.fabric !== undefined ? { fabric: x.fabric } : {}),
+          ...(x.gsm !== undefined ? { gsm: x.gsm } : {}),
+          ...(x.fit !== undefined ? { fit: x.fit } : {}),
 
-          careInstructions: x.careInstructions,
+          ...(x.careInstructions !== undefined
+            ? { careInstructions: x.careInstructions }
+            : {}),
 
-          seoTitle: x.seoTitle,
-          seoDescription: x.seoDescription,
+          ...(x.seoTitle !== undefined
+            ? { seoTitle: x.seoTitle }
+            : {}),
+          ...(x.seoDescription !== undefined
+            ? { seoDescription: x.seoDescription }
+            : {}),
         },
       });
 
-      if (x.images) {
+      /**
+       * Replace images only when images were included in the request.
+       */
+      if (x.images !== undefined) {
         await tx.productImage.deleteMany({
           where: {
             productId: u.id,
           },
         });
 
-        await tx.productImage.createMany({
-          data: x.images.map((i, n) => ({
-            productId: u.id,
-            url: i.url,
-            altText: i.altText,
-            type: i.type || 'image',
-            publicId: i.publicId,
-            position: n,
-          })),
-        });
+        if (x.images.length > 0) {
+          await tx.productImage.createMany({
+            data: x.images.map((i, n) => ({
+              productId: u.id,
+              url: i.url,
+              altText: i.altText,
+              type: i.type || 'image',
+              publicId: i.publicId,
+              position: n,
+            })),
+          });
+        }
       }
 
-      if (x.variants) {
+      /**
+       * Replace variants only when variants were included.
+       */
+      if (x.variants !== undefined) {
         await tx.productVariant.deleteMany({
           where: {
             productId: u.id,
           },
         });
 
-        await tx.productVariant.createMany({
-          data: x.variants.map((v) => ({
-            productId: u.id,
-            sku: v.sku,
-            color: v.color,
-            size: v.size,
-            stock: v.stock,
-          })),
-        });
+        if (x.variants.length > 0) {
+          await tx.productVariant.createMany({
+            data: x.variants.map((v) => ({
+              productId: u.id,
+              sku: v.sku.trim(),
+              color: v.color.trim(),
+              size: v.size.trim(),
+              stock: v.stock,
+            })),
+          });
+        }
       }
 
       if (req.admin) {
@@ -287,13 +304,228 @@ r.put('/:id', adminAuth, async (req: AdminRequest, res) => {
           variants: true,
         },
       });
+    },
+    {
+      isolationLevel: 'Serializable',
+    },
+  );
+}
+
+/**
+ * Retry a serializable transaction if PostgreSQL reports
+ * a serialization conflict.
+ */
+async function updateProductWithRetry(
+  productId: string,
+  x: ProductUpdate,
+  req: AdminRequest,
+  attempts = 3,
+) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await updateProduct(productId, x, req);
+    } catch (error: any) {
+      lastError = error;
+
+      if (error?.code !== 'P2034' || attempt === attempts) {
+        throw error;
+      }
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100 * attempt),
+      );
+    }
+  }
+
+  throw lastError;
+}
+
+r.post('/', adminAuth, async (req: AdminRequest, res) => {
+  const parsed = body.safeParse(req.body);
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      message:
+        parsed.error.issues[0]?.message || 'Invalid product',
     });
+  }
+
+  const x = parsed.data;
+
+  const duplicateSku = findDuplicateSku(x.variants);
+
+  if (duplicateSku) {
+    return res.status(409).json({
+      message: `Duplicate SKU "${duplicateSku}" in this product.`,
+    });
+  }
+
+  try {
+    const created = await db.product.create({
+      data: {
+        name: x.name,
+        slug: x.slug,
+        description: x.description,
+        price: x.price,
+        mrp: x.mrp || 0,
+
+        published: x.published ?? false,
+        featured: x.featured ?? false,
+
+        fabric: x.fabric,
+        gsm: x.gsm,
+        fit: x.fit,
+
+        careInstructions: x.careInstructions,
+
+        seoTitle: x.seoTitle,
+        seoDescription: x.seoDescription,
+
+        images: {
+          create: (x.images || []).map((i, n) => ({
+            ...i,
+            position: n,
+          })),
+        },
+
+        variants: {
+          create: x.variants || [],
+        },
+      },
+
+      include: {
+        images: true,
+        variants: true,
+      },
+    });
+
+    res.status(201).json(created);
+  } catch (error: any) {
+    if (error?.code === 'P2002') {
+      const target = Array.isArray(error?.meta?.target)
+        ? error.meta.target.join(', ')
+        : String(error?.meta?.target || '');
+
+      if (target.toLowerCase().includes('slug')) {
+        return res.status(409).json({
+          message: `Slug "${x.slug}" already exists.`,
+        });
+      }
+
+      if (target.toLowerCase().includes('sku')) {
+        return res.status(409).json({
+          message: 'One of the product SKUs already exists.',
+        });
+      }
+
+      return res.status(409).json({
+        message: 'A unique product value already exists.',
+      });
+    }
+
+    throw error;
+  }
+});
+
+r.put('/:id', adminAuth, async (req: AdminRequest, res) => {
+  const productId = String(req.params.id);
+
+  const parsed = body.partial().safeParse(req.body);
+
+  if (!parsed.success) {
+    return res.status(400).json({
+      message:
+        parsed.error.issues[0]?.message || 'Invalid product',
+    });
+  }
+
+  const x: ProductUpdate = parsed.data;
+
+  try {
+    /**
+     * Check duplicate SKUs in the request itself.
+     */
+    const duplicateSku = findDuplicateSku(x.variants);
+
+    if (duplicateSku) {
+      return res.status(409).json({
+        message: `Duplicate SKU "${duplicateSku}" in this product.`,
+      });
+    }
+
+    /**
+     * Check SKU conflicts against other products.
+     */
+    const conflictingSku = await findConflictingSku(
+      productId,
+      x.variants,
+    );
+
+    if (conflictingSku) {
+      return res.status(409).json({
+        message: `SKU "${conflictingSku}" is already used by another product.`,
+      });
+    }
+
+    /**
+     * Check slug conflict before entering the transaction.
+     */
+    if (x.slug !== undefined) {
+      const existingSlug = await db.product.findFirst({
+        where: {
+          slug: x.slug,
+          id: {
+            not: productId,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (existingSlug) {
+        return res.status(409).json({
+          message: `Slug "${x.slug}" is already used by another product.`,
+        });
+      }
+    }
+
+    const updated = await updateProductWithRetry(
+      productId,
+      x,
+      req,
+    );
 
     res.json(updated);
   } catch (error: any) {
     if (error?.code === 'P2002') {
+      const target = Array.isArray(error?.meta?.target)
+        ? error.meta.target.join(', ')
+        : String(error?.meta?.target || '');
+
+      if (target.toLowerCase().includes('slug')) {
+        return res.status(409).json({
+          message: `Slug "${x.slug || ''}" already exists.`,
+        });
+      }
+
+      if (target.toLowerCase().includes('sku')) {
+        return res.status(409).json({
+          message: 'One of the product SKUs already exists.',
+        });
+      }
+
       return res.status(409).json({
-        message: 'Slug or SKU already exists.',
+        message: 'A unique product value already exists.',
+      });
+    }
+
+    if (error?.code === 'P2034') {
+      return res.status(409).json({
+        message:
+          'Another admin update happened at the same time. Please save again.',
       });
     }
 
@@ -364,7 +596,7 @@ r.delete(
 
       throw error;
     }
-  }
+  },
 );
 
 export default r;
