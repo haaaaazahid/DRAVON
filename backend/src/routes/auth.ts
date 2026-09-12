@@ -1,5 +1,145 @@
-import {Router} from 'express';import bcrypt from 'bcryptjs';import jwt from 'jsonwebtoken';import {db} from '../lib/db';import {z} from 'zod';import {adminAuth,AdminRequest} from '../middleware/auth';
-const r=Router();const login=z.object({email:z.string().email(),password:z.string().min(8)});
-r.post('/login',async(req,res)=>{const p=login.safeParse(req.body);if(!p.success)return res.status(400).json({message:'Invalid credentials'});const a=await db.admin.findUnique({where:{email:p.data.email}});if(!a||!(await bcrypt.compare(p.data.password,a.passwordHash)))return res.status(401).json({message:'Invalid credentials'});const token=jwt.sign({id:a.id,role:a.role},process.env.JWT_SECRET!,{expiresIn:'8h'});res.cookie('dravon_admin',token,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',maxAge:8*60*60*1000});res.json({admin:{id:a.id,name:a.name,email:a.email,role:a.role}})});
-r.post('/logout',adminAuth,(_req,res)=>{res.clearCookie('dravon_admin');res.json({ok:true})});
-r.get('/me',adminAuth,async(req:AdminRequest,res)=>{const a=await db.admin.findUnique({where:{id:req.admin!.id},select:{id:true,name:true,email:true,role:true}});res.json(a)});export default r;
+import { Router } from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { db } from '../lib/db';
+import { z } from 'zod';
+import { adminAuth, AdminRequest } from '../middleware/auth';
+
+const r = Router();
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite:
+    process.env.NODE_ENV === 'production'
+      ? ('none' as const)
+      : ('lax' as const),
+  maxAge: 8 * 60 * 60 * 1000,
+  path: '/',
+};
+
+r.post('/login', async (req, res) => {
+  try {
+    const parsed = loginSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+      return res.status(400).json({
+        message: 'Invalid credentials',
+      });
+    }
+
+    const admin = await db.admin.findUnique({
+      where: {
+        email: parsed.data.email,
+      },
+    });
+
+    if (
+      !admin ||
+      !(await bcrypt.compare(
+        parsed.data.password,
+        admin.passwordHash
+      ))
+    ) {
+      return res.status(401).json({
+        message: 'Invalid admin email or password.',
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        id: admin.id,
+        role: admin.role,
+      },
+      process.env.JWT_SECRET!,
+      {
+        expiresIn: '8h',
+      }
+    );
+
+    res.cookie(
+      'dravon_admin',
+      token,
+      cookieOptions
+    );
+
+    return res.json({
+      admin: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+      },
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+
+    return res.status(500).json({
+      message: 'Login failed.',
+    });
+  }
+});
+
+r.post(
+  '/logout',
+  adminAuth,
+  (_req, res) => {
+    res.clearCookie(
+      'dravon_admin',
+      {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite:
+          process.env.NODE_ENV === 'production'
+            ? ('none' as const)
+            : ('lax' as const),
+        path: '/',
+      }
+    );
+
+    return res.json({
+      ok: true,
+    });
+  }
+);
+
+r.get(
+  '/me',
+  adminAuth,
+  async (req: AdminRequest, res) => {
+    try {
+      const admin = await db.admin.findUnique({
+        where: {
+          id: req.admin!.id,
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+        },
+      });
+
+      if (!admin) {
+        return res.status(401).json({
+          message: 'Admin account not found.',
+        });
+      }
+
+      return res.json(admin);
+    } catch (error) {
+      console.error('Admin session error:', error);
+
+      return res.status(500).json({
+        message: 'Could not verify admin session.',
+      });
+    }
+  }
+);
+
+export default r;
