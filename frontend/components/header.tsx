@@ -43,9 +43,24 @@ export function Header() {
 
         <Link
           href="/"
-          className="whitespace-nowrap text-lg font-black tracking-[.2em]"
+          aria-label="DRAVON home"
+          className="flex shrink-0 items-center gap-2"
         >
-          ◢ DRAVON
+          <img
+            src="/brand/symbol.png"
+            alt=""
+            aria-hidden="true"
+            width={32}
+            height={32}
+            className="h-7 w-auto object-contain sm:h-8"
+          />
+          <img
+            src="/brand/wordmark.png"
+            alt="DRAVON"
+            width={145}
+            height={16}
+            className="h-auto w-[112px] sm:w-[128px]"
+          />
         </Link>
 
         <nav className="desktop-only flex flex-1 items-center justify-center gap-7">
@@ -65,26 +80,15 @@ export function Header() {
             <ThemeToggle />
           </div>
 
-          <button
-            aria-label="Search"
-            className="desktop-only"
-          >
+          <Link href="/shop" aria-label="Search products" className="desktop-only">
             <Search size={17} />
-          </button>
+          </Link>
 
-          <Link
-            href="/account"
-            className="desktop-only"
-            aria-label="Account"
-          >
+          <Link href="/account" className="desktop-only" aria-label="Account">
             <UserRound size={17} />
           </Link>
 
-          <Link
-            href="/wishlist"
-            className="desktop-only"
-            aria-label="Wishlist"
-          >
+          <Link href="/wishlist" className="desktop-only" aria-label="Wishlist">
             <Heart size={17} />
           </Link>
 
