@@ -1,4 +1,4 @@
-﻿import Image from 'next/image';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -7,38 +7,14 @@ import {
 } from 'lucide-react';
 
 const gallery = [
-  {
-    id: 'photo-1534438327276-14e5300c3a48',
-    alt: 'Athlete training in the DRAVON community',
-  },
-  {
-    id: 'photo-1549060279-7e168fcee0c2',
-    alt: 'Athlete training outdoors',
-  },
-  {
-    id: 'photo-1517836357463-d25dfeac3438',
-    alt: 'Strength training athlete',
-  },
-  {
-    id: 'photo-1583454110551-21f2fa2afe61',
-    alt: 'Athlete performing a workout',
-  },
-  {
-    id: 'photo-1599058917765-a780eda07a3e',
-    alt: 'Performance training',
-  },
-  {
-    id: 'photo-1538805060514-97d9cc17730c',
-    alt: 'Street workout athlete',
-  },
-  {
-    id: 'photo-1581009146145-b5ef050c2e1e',
-    alt: 'Calisthenics training',
-  },
-  {
-    id: 'photo-1571019613454-1cb2f99b2d8b',
-    alt: 'Athlete training in the gym',
-  },
+  { id: 'muscle-up', src: '/images/skills/muscle-up.webp', alt: 'Athlete performing a muscle-up on a bar' },
+  { id: 'front-lever', src: '/images/skills/front-lever.webp', alt: 'Athlete holding a front lever' },
+  { id: 'handstand', src: '/images/skills/handstand.webp', alt: 'Athlete balancing in a handstand' },
+  { id: 'planche', src: '/images/skills/planche.webp', alt: 'Athlete holding a planche on parallel bars' },
+  { id: 'human-flag', src: '/images/skills/human-flag.webp', alt: 'Athlete holding a human flag' },
+  { id: 'back-lever', src: '/images/skills/back-lever.webp', alt: 'Athlete holding a back lever' },
+  { id: 'l-sit', src: '/images/skills/l-sit.webp', alt: 'Athlete holding an L-sit' },
+  { id: 'dips', src: '/images/skills/dips.webp', alt: 'Athlete performing parallel-bar dips' },
 ];
 
 const principles = [
@@ -91,12 +67,12 @@ export default function CommunityPage() {
       {/* HERO */}
       <section className="relative flex min-h-[82vh] items-end overflow-hidden border-b border-[var(--line)] bg-black">
         <Image
-          src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=2400&q=88"
-          alt="DRAVON training community"
+          src="/images/skills/human-flag.webp"
+          alt="Athlete holding a human flag outdoors"
           fill
           priority
           sizes="100vw"
-          className="scale-[1.02] object-cover"
+          className="scale-[1.02] object-cover object-[center_38%]"
         />
 
         {/* Image treatment */}
@@ -229,7 +205,7 @@ export default function CommunityPage() {
                 }`}
               >
                 <Image
-                  src={`https://images.unsplash.com/${item.id}?auto=format&fit=crop&w=1000&q=85`}
+                  src={item.src}
                   alt={item.alt}
                   fill
                   sizes="(max-width: 768px) 50vw, 25vw"

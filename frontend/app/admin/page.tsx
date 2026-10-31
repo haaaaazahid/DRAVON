@@ -220,20 +220,20 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="flex min-h-screen">
-        <aside className="w-56 border-r border-white/10 p-5 hidden md:flex md:flex-col fixed inset-y-0 left-0 bg-[#0a0a0a]">
+      <div className="flex min-h-screen flex-col md:flex-row">
+        <aside className="flex w-full shrink-0 flex-col border-b border-white/10 bg-[#0a0a0a] p-4 md:sticky md:top-0 md:h-screen md:w-56 md:border-b-0 md:border-r md:p-5">
           <div className="font-black tracking-[.2em]">DRAVON</div>
           <div className="text-[8px] tracking-[.2em] text-white/40 mt-1">ADMIN CONTROL</div>
-          <div className="mt-10 space-y-1">
-            {nav.map(([key, label, Icon]) => <button key={key} onClick={() => { setTab(key); if (key === 'orders') loadOrders(); }} className={`w-full text-left p-3 text-[9px] tracking-[.16em] flex gap-3 items-center ${tab === key ? 'bg-white text-black' : 'text-white/70 hover:bg-white/5'}`}><Icon size={14} />{label}</button>)}
+          <div className="mt-5 flex gap-1 overflow-x-auto pb-1 md:mt-10 md:flex-col md:overflow-visible">
+            {nav.map(([key, label, Icon]) => <button key={key} onClick={() => { setTab(key); if (key === 'orders') loadOrders(); }} className={`w-auto shrink-0 whitespace-nowrap text-left p-3 text-[9px] tracking-[.16em] flex gap-3 items-center md:w-full ${tab === key ? 'bg-white text-black' : 'text-white/70 hover:bg-white/5'}`}><Icon size={14} />{label}</button>)}
           </div>
-          <div className="mt-auto space-y-3">
+          <div className="mt-3 flex flex-wrap items-center gap-4 md:mt-auto md:block md:space-y-3">
             <a href="/" className="block text-[9px] text-white/45 hover:text-white">← VIEW STORE</a>
             <button onClick={logout} className="text-[9px] flex gap-2 items-center"><LogOut size={13} />LOG OUT</button>
           </div>
         </aside>
 
-        <section className="flex-1 md:ml-56 p-5 md:p-8 overflow-auto">
+        <section className="min-w-0 flex-1 overflow-x-hidden p-4 sm:p-5 md:p-8">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div><div className="text-[9px] tracking-[.2em] text-white/40">DRAVON / ADMIN</div><h1 className="text-3xl md:text-5xl font-black mt-2">{tab.toUpperCase()}.</h1></div>
             <div className="flex gap-2">
@@ -286,7 +286,7 @@ export default function AdminPage() {
           <Field label="MRP"><input type="number" min="0" value={editor.mrp || 0} onChange={(e) => updateEditor('mrp', Number(e.target.value))} className="input" /></Field>
         </div>
         <Field label="DESCRIPTION"><textarea value={editor.description || ''} onChange={(e) => updateEditor('description', e.target.value)} className="input min-h-24" /></Field>
-        <div className="flex gap-5 mt-5 text-[10px] tracking-[.12em]"><label><input type="checkbox" checked={!!editor.published} onChange={(e) => updateEditor('published', e.target.checked)} className="mr-2" />PUBLISHED / LIVE</label><label><input type="checkbox" checked={!!editor.featured} onChange={(e) => updateEditor('featured', e.target.checked)} className="mr-2" />FEATURED</label></div>
+        <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3 text-[10px] tracking-[.12em]"><label><input type="checkbox" checked={!!editor.published} onChange={(e) => updateEditor('published', e.target.checked)} className="mr-2" />PUBLISHED / LIVE</label><label><input type="checkbox" checked={!!editor.featured} onChange={(e) => updateEditor('featured', e.target.checked)} className="mr-2" />FEATURED</label></div>
 
         <div className="mt-8 border-t border-white/10 pt-6">
           <div className="flex justify-between items-center">
@@ -339,7 +339,7 @@ export default function AdminPage() {
         <div className="mt-8 border-t border-white/10 pt-6"><div className="flex justify-between items-center"><div><div className="text-[9px] tracking-[.18em] font-bold">VARIANTS & STOCK</div><div className="text-[9px] text-white/35 mt-1">Each size/color combination has its own stock.</div></div><button type="button" onClick={() => setEditor({ ...editor, variants: [...(editor.variants || []), { sku: `DRV-${Date.now()}`, color: 'Black', size: 'M', stock: 0 }] })} className="text-[9px] border border-white/15 px-3 py-2"><Plus size={12} className="inline mr-1" />ADD VARIANT</button></div>
           <div className="hidden md:grid md:grid-cols-[1.4fr_1fr_1fr_100px_110px_auto] gap-2 px-1 mb-2 text-[8px] tracking-[.14em] text-white/35"><span>SKU</span><span>COLOUR</span><span>SIZE</span><span>STOCK</span><span>AVAILABILITY</span><span /></div><div className="mt-3 space-y-2">{(editor.variants || []).map((variant, index) => <div key={index} className="grid grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_100px_110px_auto] gap-2 items-center"><input value={variant.sku} onChange={(e) => { const variants = [...(editor.variants || [])]; variants[index] = { ...variants[index], sku: e.target.value }; setEditor({ ...editor, variants }); }} className="input" placeholder="SKU" /><input value={variant.color} onChange={(e) => { const variants = [...(editor.variants || [])]; variants[index] = { ...variants[index], color: e.target.value }; setEditor({ ...editor, variants }); }} className="input" placeholder="COLOR" /><input value={variant.size} onChange={(e) => { const variants = [...(editor.variants || [])]; variants[index] = { ...variants[index], size: e.target.value }; setEditor({ ...editor, variants }); }} className="input" placeholder="SIZE" /><input type="number" min="0" value={variant.stock} onChange={(e) => { const variants = [...(editor.variants || [])]; variants[index] = { ...variants[index], stock: Number(e.target.value) }; setEditor({ ...editor, variants }); }} className="input" placeholder="STOCK" /><div className={`text-[9px] font-bold tracking-[.08em] px-2 ${Number(variant.stock) <= 0 ? 'text-red-400' : Number(variant.stock) <= 10 ? 'text-amber-300' : 'text-green-400'}`}>{stockLabel(Number(variant.stock)) || 'AVAILABLE'}</div><button type="button" onClick={() => setEditor({ ...editor, variants: (editor.variants || []).filter((_, i) => i !== index) })} className="border border-red-900 text-red-400 px-3"><Trash2 size={13} /></button></div>)}</div>
         </div>
-        <div className="flex justify-end gap-2 mt-8"><button type="button" onClick={() => setEditor(null)} className="border border-white/15 px-5 py-3 text-[9px] tracking-[.16em]">CANCEL</button><button disabled={saving} className="bg-[#8b0000] px-6 py-3 text-[9px] font-bold tracking-[.16em]">{saving ? 'SAVING...' : editor.id ? 'SAVE CHANGES' : 'CREATE PRODUCT'}</button></div>
+        <div className="mt-8 flex flex-wrap justify-end gap-2"><button type="button" onClick={() => setEditor(null)} className="border border-white/15 px-5 py-3 text-[9px] tracking-[.16em]">CANCEL</button><button disabled={saving} className="bg-[#8b0000] px-6 py-3 text-[9px] font-bold tracking-[.16em]">{saving ? 'SAVING...' : editor.id ? 'SAVE CHANGES' : 'CREATE PRODUCT'}</button></div>
       </form></div>}
       <style jsx global>{`.input{width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,.14);padding:.75rem;font-size:.75rem;outline:none}.input:focus{border-color:rgba(255,255,255,.45)}label{display:block}.input::placeholder{color:rgba(255,255,255,.25)}`}</style>
     </main>

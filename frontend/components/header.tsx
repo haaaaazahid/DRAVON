@@ -32,9 +32,9 @@ export function Header() {
         FREE SHIPPING ON ORDERS ABOVE ₹2,999
       </div>
 
-      <div className="container flex h-16 items-center justify-between gap-6">
+      <div className="container flex h-14 sm:h-16 items-center justify-between gap-3 sm:gap-5">
         <button
-          className="mobile-only"
+          className="mobile-only h-10 w-10 shrink-0 items-center justify-center"
           onClick={() => setOpen(!open)}
           aria-label="Toggle menu"
         >
@@ -63,7 +63,7 @@ export function Header() {
           />
         </Link>
 
-        <nav className="desktop-only flex flex-1 items-center justify-center gap-7">
+        <nav className="desktop-only flex-1 items-center justify-center gap-4 xl:gap-7">
           {nav.map(([label, href]) => (
             <Link
               key={label}
@@ -75,7 +75,7 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-4">
+        <div className="flex shrink-0 items-center gap-3 sm:gap-4">
           <div className="desktop-only">
             <ThemeToggle />
           </div>
@@ -110,7 +110,7 @@ export function Header() {
       </div>
 
       {open && (
-        <div className="mobile-only space-y-4 border-t border-[var(--line)] px-5 py-5">
+        <div className="mobile-only flex-col space-y-4 border-t border-[var(--line)] px-5 py-5 lg:hidden">
           {nav.map(([label, href]) => (
             <Link
               key={label}
@@ -122,7 +122,12 @@ export function Header() {
             </Link>
           ))}
 
-          <ThemeToggle />
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-4 border-t border-[var(--line)] pt-4">
+            <Link href="/account" onClick={() => setOpen(false)} className="text-xs font-bold tracking-[.14em]">ACCOUNT</Link>
+            <Link href="/wishlist" onClick={() => setOpen(false)} className="text-xs font-bold tracking-[.14em]">WISHLIST</Link>
+            <Link href="/shop" onClick={() => setOpen(false)} className="text-xs font-bold tracking-[.14em]">SEARCH PRODUCTS</Link>
+            <ThemeToggle />
+          </div>
         </div>
       )}
     </header>

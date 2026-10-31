@@ -6,4 +6,15 @@ export const products=[
 {id:'5',slug:'performance-tank',name:'PERFORMANCE TANK',price:1399,mrp:0,tag:null,colors:['Black','White'],sizes:['XS','S','M','L','XL'],category:'TANKS',image:'https://images.unsplash.com/photo-1556906781-9a412961c28c?auto=format&fit=crop&w=1200&q=82',gallery:[]},
 {id:'6',slug:'dravon-joggers',name:'JOGGERS',price:2199,mrp:2599,tag:'SALE',colors:['Black'],sizes:['S','M','L','XL','XXL'],category:'BOTTOMS',image:'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?auto=format&fit=crop&w=1200&q=82',gallery:[]},
 ];
-export const collections=[['PLANCHE','https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=900&q=80'],['HANDSTAND','https://images.unsplash.com/photo-1584735175315-9d5df23860e6?auto=format&fit=crop&w=900&q=80'],['FRONT LEVER','https://images.unsplash.com/photo-1517963879433-6ad2b056d712?auto=format&fit=crop&w=900&q=80'],['MUSCLE-UP','https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?auto=format&fit=crop&w=900&q=80'],['STREET WORKOUT','https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?auto=format&fit=crop&w=900&q=80']];
+export const skills = [
+  { name: 'MUSCLE-UP', slug: 'muscle-up', image: '/images/skills/muscle-up.webp', alt: 'Athlete transitioning over a pull-up bar in a muscle-up', focus: 'PULL · TRANSITION · POWER' },
+  { name: 'FRONT LEVER', slug: 'front-lever', image: '/images/skills/front-lever.webp', alt: 'Athlete holding a horizontal front lever on a bar', focus: 'CORE · CONTROL · STRENGTH' },
+  { name: 'HANDSTAND', slug: 'handstand', image: '/images/skills/handstand.webp', alt: 'Athlete balancing upside down on straight arms in a handstand', focus: 'BALANCE · CONTROL · FOCUS' },
+  { name: 'PLANCHE', slug: 'planche', image: '/images/skills/planche.webp', alt: 'Athlete holding a straight-body planche on parallel bars', focus: 'STRENGTH · LEVERAGE · POWER' },
+  { name: 'HUMAN FLAG', slug: 'human-flag', image: '/images/skills/human-flag.webp', alt: 'Athlete holding a horizontal human flag on a vertical pole', focus: 'STRENGTH · CORE · CONTROL' },
+  { name: 'BACK LEVER', slug: 'back-lever', image: '/images/skills/back-lever.webp', alt: 'Athlete holding a back lever beneath a bar', focus: 'STRENGTH · FLEXIBILITY · CONTROL' },
+  { name: 'L-SIT', slug: 'l-sit', image: '/images/skills/l-sit.webp', alt: 'Athlete holding an L-sit on parallel bars', focus: 'CORE · STRENGTH · ENDURANCE' },
+  { name: 'DIPS', slug: 'dips', image: '/images/skills/dips.webp', alt: 'Athlete performing a dip on parallel bars', focus: 'STRENGTH · TRICEPS · POWER' },
+];
+
+export const collections = skills.map((skill) => [skill.name, skill.image] as [string, string]);
