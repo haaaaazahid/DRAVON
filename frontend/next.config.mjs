@@ -1,6 +1,9 @@
 import path from 'path';
 
 /** @type {import('next').NextConfig} */
+const apiBase = (
+  process.env.NEXT_PUBLIC_API_URL || 'https://dravon-api.onrender.com/api'
+).replace(/\/$/, '');
 
 const nextConfig = {
   turbopack: {
@@ -11,8 +14,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination:
-          'https://dravon-api.onrender.com/api/:path*',
+        destination: `${apiBase}/:path*`,
       },
     ];
   },

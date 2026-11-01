@@ -12,6 +12,7 @@ import products from './routes/products';
 import admin from './routes/admin';
 import media from './routes/media';
 import payments from './routes/payments';
+import newsletter from './routes/newsletter';
 
 const app = express();
 
@@ -28,12 +29,15 @@ const app = express();
 
 const allowedOrigins = [
   'https://dravon-six.vercel.app',
-  process.env.FRONTEND_URL,
+  ...(process.env.FRONTEND_URL || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 
   // Local development
   'http://localhost:3000',
   'http://localhost:3001',
-].filter(Boolean) as string[];
+];
 
 app.use(
   helmet({
@@ -127,6 +131,7 @@ app.use('/api/products', products);
 app.use('/api/admin', admin);
 app.use('/api/media', media);
 app.use('/api/payments', payments);
+app.use('/api/newsletter', newsletter);
 
 /*
 |--------------------------------------------------------------------------
