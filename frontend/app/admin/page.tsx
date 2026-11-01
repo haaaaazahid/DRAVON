@@ -5,6 +5,8 @@ import {
   BarChart3, Check, Edit3, Eye, EyeOff, Image as ImageIcon, IndianRupee, LayoutDashboard,
   LogOut, Package, Plus, RefreshCw, Search, ShoppingBag, Trash2, Users, X,
 } from 'lucide-react';
+import { GalleryManager } from '@/components/admin/gallery-manager';
+import { GalleryImage, isAngle } from '@/lib/gallery';
 
 const API = '/api';
 const ADMIN_EMAIL = 'admin@dravon.in';
@@ -19,10 +21,11 @@ const MOVEMENT_OPTIONS = [
 type Variant = { id?: string; sku: string; color: string; size: string; stock: number };
 type Product = {
   id: string; name: string; slug: string; description?: string; price: number | string; mrp?: number | string;
-  published: boolean; featured: boolean; movements?: string[]; images?: { id?: string; url: string; altText?: string }[]; variants?: Variant[];
+  published: boolean; featured: boolean; movements?: string[]; images?: { id?: string; url: string; altText?: string | null; angle?: string | null; publicId?: string | null }[]; variants?: Variant[];
 };
+type EditorProduct = Omit<Product, 'id' | 'images'> & { id?: string; images?: GalleryImage[] };
 
-const emptyProduct: Omit<Product, 'id'> = {
+const emptyProduct: Omit<Product, 'id' | 'images'> & { images: GalleryImage[] } = {
   name: '', slug: '', description: '', price: 0, mrp: 0, published: false, featured: false,
   images: [], movements: [], variants: [{ sku: '', color: 'Black', size: 'M', stock: 0 }],
 };
@@ -61,10 +64,10 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [query, setQuery] = useState('');
-  const [editor, setEditor] = useState<(Omit<Product, 'id'> & { id?: string }) | null>(null);
+  const [editor, setEditor] = useState<EditorProduct | null>(null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
-  const [uploadingImage, setUploadingImage] = useState<number | null>(null);
+  const [galleryBusy, setGalleryBusy] = useState(false);
 
   async function api(path: string, options: RequestInit = {}) {
     return fetch(`${API}${path}`, { ...options, credentials: 'include', headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) } });
@@ -104,14 +107,17 @@ export default function AdminPage() {
   }
 
   function openNew() {
-    setEditor({ ...emptyProduct, variants: [{ sku: `DRV-${Date.now()}`, color: 'Black', size: 'M', stock: 0 }] });
+    setEditor({ ...emptyProduct, images: [], variants: [{ sku: `DRV-${Date.now()}`, color: 'Black', size: 'M', stock: 0 }] });
   }
 
   function openEdit(product: Product) {
     setEditor({
       ...product,
       price: Number(product.price), mrp: Number(product.mrp || 0),
-      images: (product.images || []).map((x) => ({ url: x.url, altText: x.altText || '' })),
+      images: (product.images || []).map((x, i) => ({
+        key: x.id || `img-${i}-${x.url}`, url: x.url, altText: x.altText || '',
+        angle: isAngle(x.angle) ? x.angle : null, publicId: x.publicId || undefined,
+      })),
       movements: Array.isArray(product.movements) ? product.movements : [],
       variants: (product.variants || []).map((v) => ({ sku: v.sku, color: v.color, size: v.size, stock: Number(v.stock) })),
     });
@@ -121,68 +127,46 @@ export default function AdminPage() {
     setEditor((current) => current ? { ...current, [key]: value } : current);
   }
 
-  async function uploadProductImage(index: number, file: File) {
-    if (!editor) return;
+  /** Signed upload straight to Cloudinary (same signature route as before). */
+  async function uploadToCloudinary(file: File): Promise<{ url: string; publicId?: string }> {
+    const signatureResponse = await api('/media/cloudinary-signature');
+    const signatureData = await signatureResponse.json().catch(() => ({}));
 
-    if (!file.type.startsWith('image/')) {
-      setNotice('Please select an image file.');
-      return;
+    if (!signatureResponse.ok) {
+      throw new Error(signatureData.message || 'Cloudinary is not configured.');
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      setNotice('Image must be 10 MB or smaller.');
-      return;
+    const form = new FormData();
+    form.append('file', file);
+    form.append('api_key', signatureData.apiKey);
+    form.append('timestamp', String(signatureData.timestamp));
+    form.append('folder', signatureData.folder);
+    form.append('signature', signatureData.signature);
+
+    const cloudinaryResponse = await fetch(
+      `https://api.cloudinary.com/v1_1/${signatureData.cloudName}/auto/upload`,
+      { method: 'POST', body: form }
+    );
+    const cloudinaryData = await cloudinaryResponse.json().catch(() => ({}));
+
+    if (!cloudinaryResponse.ok || !cloudinaryData.secure_url) {
+      throw new Error(cloudinaryData.error?.message || 'Cloudinary upload failed.');
     }
 
-    setUploadingImage(index);
-    setNotice('Preparing Cloudinary upload...');
-
-    try {
-      const signatureResponse = await api('/media/cloudinary-signature');
-      const signatureData = await signatureResponse.json().catch(() => ({}));
-
-      if (!signatureResponse.ok) {
-        throw new Error(signatureData.message || 'Cloudinary is not configured.');
-      }
-
-      const form = new FormData();
-      form.append('file', file);
-      form.append('api_key', signatureData.apiKey);
-      form.append('timestamp', String(signatureData.timestamp));
-      form.append('folder', signatureData.folder);
-      form.append('signature', signatureData.signature);
-
-      const cloudinaryResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${signatureData.cloudName}/auto/upload`,
-        { method: 'POST', body: form }
-      );
-      const cloudinaryData = await cloudinaryResponse.json().catch(() => ({}));
-
-      if (!cloudinaryResponse.ok || !cloudinaryData.secure_url) {
-        throw new Error(cloudinaryData.error?.message || 'Cloudinary upload failed.');
-      }
-
-      const images = [...(editor.images || [])];
-      images[index] = {
-        ...images[index],
-        url: cloudinaryData.secure_url,
-        altText: images[index]?.altText || editor.name || '',
-      };
-      setEditor({ ...editor, images });
-      setNotice('Image uploaded to Cloudinary.');
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Cloudinary upload failed.');
-    } finally {
-      setUploadingImage(null);
-    }
+    return { url: cloudinaryData.secure_url, publicId: cloudinaryData.public_id };
   }
 
   async function saveProduct(event: FormEvent) {
-    event.preventDefault(); if (!editor) return; setSaving(true); setNotice('');
+    event.preventDefault(); if (!editor) return;
+    if (galleryBusy || (editor.images || []).some((x) => x.uploading)) { setNotice('Please wait for image uploads to finish.'); return; }
+    setSaving(true); setNotice('');
     const payload = {
       name: editor.name.trim(), slug: editor.slug.trim(), description: editor.description || '',
       price: Number(editor.price), mrp: Number(editor.mrp || 0), published: !!editor.published, featured: !!editor.featured,
-      images: (editor.images || []).filter((x) => x.url.trim()).map((x) => ({ url: x.url.trim(), altText: x.altText || '' })),
+      images: (editor.images || []).filter((x) => /^https?:\/\//.test(x.url.trim())).map((x) => ({
+        url: x.url.trim(), altText: x.altText || editor.name.trim(),
+        ...(isAngle(x.angle) ? { angle: x.angle } : {}), ...(x.publicId ? { publicId: x.publicId } : {}),
+      })),
       variants: (editor.variants || []).filter((v) => v.sku.trim() && v.color.trim() && v.size.trim()).map((v) => ({ sku: v.sku.trim(), color: v.color.trim(), size: v.size.trim(), stock: Math.max(0, Number(v.stock) || 0) })),
     };
     const response = editor.id
@@ -315,58 +299,19 @@ export default function AdminPage() {
           <div className="mt-3 text-[8px] text-white/35">A product can belong to multiple movements. Leave all unchecked to keep it in the general store only.</div>
         </div>
 
-        <div className="mt-8 border-t border-white/10 pt-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <div className="text-[9px] tracking-[.18em] font-bold">PRODUCT IMAGES</div>
-              <div className="text-[9px] text-white/35 mt-1">Upload directly to Cloudinary or paste an existing image URL.</div>
-            </div>
-            <button type="button" onClick={() => setEditor({ ...editor, images: [...(editor.images || []), { url: '', altText: '' }] })} className="text-[9px] border border-white/15 px-3 py-2"><Plus size={12} className="inline mr-1" />ADD IMAGE</button>
-          </div>
-          {(editor.images || []).map((image, index) => (
-            <div key={index} className="mt-4 border border-white/10 p-3">
-              <div className="grid md:grid-cols-[220px_1fr_auto] gap-3 items-start">
-                <div>
-                  {image.url ? (
-                    <div className="aspect-square bg-black border border-white/10 overflow-hidden">
-                      <img src={image.url} alt={image.altText || 'Product image'} className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div className="aspect-square border border-dashed border-white/15 grid place-items-center text-[9px] text-white/30">NO IMAGE</div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-2">
-                    <label className="inline-flex items-center justify-center border border-white/20 px-4 py-2 text-[9px] tracking-[.12em] font-bold cursor-pointer hover:bg-white/5">
-                      {uploadingImage === index ? 'UPLOADING...' : 'UPLOAD TO CLOUDINARY'}
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-                        className="hidden"
-                        disabled={uploadingImage !== null}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          e.currentTarget.value = '';
-                          if (file) uploadProductImage(index, file);
-                        }}
-                      />
-                    </label>
-                    {image.url && <a href={image.url} target="_blank" rel="noreferrer" className="border border-white/10 px-4 py-2 text-[9px] tracking-[.12em] text-white/60 hover:text-white">OPEN IMAGE</a>}
-                  </div>
-                  <input value={image.url} onChange={(e) => { const images = [...(editor.images || [])]; images[index] = { ...images[index], url: e.target.value }; setEditor({ ...editor, images }); }} className="input" placeholder="https://..." />
-                  <input value={image.altText || ''} onChange={(e) => { const images = [...(editor.images || [])]; images[index] = { ...images[index], altText: e.target.value }; setEditor({ ...editor, images }); }} className="input" placeholder="ALT TEXT" />
-                  <div className="text-[8px] text-white/30">JPG, PNG, WEBP • MAX 10 MB</div>
-                </div>
-                <button type="button" onClick={() => setEditor({ ...editor, images: (editor.images || []).filter((_, i) => i !== index) })} className="border border-red-900 text-red-400 px-3 py-2" title="Remove image"><Trash2 size={13} /></button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <GalleryManager
+          images={editor.images || []}
+          productName={editor.name || 'Product'}
+          onChange={(update) => setEditor((current) => current ? { ...current, images: update(current.images || []) } : current)}
+          upload={uploadToCloudinary}
+          onBusyChange={setGalleryBusy}
+          onError={setNotice}
+        />
 
         <div className="mt-8 border-t border-white/10 pt-6"><div className="flex justify-between items-center"><div><div className="text-[9px] tracking-[.18em] font-bold">VARIANTS & STOCK</div><div className="text-[9px] text-white/35 mt-1">Each size/color combination has its own stock.</div></div><button type="button" onClick={() => setEditor({ ...editor, variants: [...(editor.variants || []), { sku: `DRV-${Date.now()}`, color: 'Black', size: 'M', stock: 0 }] })} className="text-[9px] border border-white/15 px-3 py-2"><Plus size={12} className="inline mr-1" />ADD VARIANT</button></div>
           <div className="hidden md:grid md:grid-cols-[1.4fr_1fr_1fr_100px_110px_auto] gap-2 px-1 mb-2 text-[8px] tracking-[.14em] text-white/35"><span>SKU</span><span>COLOUR</span><span>SIZE</span><span>STOCK</span><span>AVAILABILITY</span><span /></div><div className="mt-3 space-y-2">{(editor.variants || []).map((variant, index) => <div key={index} className="grid grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_100px_110px_auto] gap-2 items-center"><input value={variant.sku} onChange={(e) => { const variants = [...(editor.variants || [])]; variants[index] = { ...variants[index], sku: e.target.value }; setEditor({ ...editor, variants }); }} className="input" placeholder="SKU" /><input value={variant.color} onChange={(e) => { const variants = [...(editor.variants || [])]; variants[index] = { ...variants[index], color: e.target.value }; setEditor({ ...editor, variants }); }} className="input" placeholder="COLOR" /><input value={variant.size} onChange={(e) => { const variants = [...(editor.variants || [])]; variants[index] = { ...variants[index], size: e.target.value }; setEditor({ ...editor, variants }); }} className="input" placeholder="SIZE" /><input type="number" min="0" value={variant.stock} onChange={(e) => { const variants = [...(editor.variants || [])]; variants[index] = { ...variants[index], stock: Number(e.target.value) }; setEditor({ ...editor, variants }); }} className="input" placeholder="STOCK" /><div className={`text-[9px] font-bold tracking-[.08em] px-2 ${Number(variant.stock) <= 0 ? 'text-red-400' : Number(variant.stock) <= 10 ? 'text-amber-300' : 'text-green-400'}`}>{stockLabel(Number(variant.stock)) || 'AVAILABLE'}</div><button type="button" onClick={() => setEditor({ ...editor, variants: (editor.variants || []).filter((_, i) => i !== index) })} className="border border-red-900 text-red-400 px-3"><Trash2 size={13} /></button></div>)}</div>
         </div>
-        <div className="mt-8 flex flex-wrap justify-end gap-2"><button type="button" onClick={() => setEditor(null)} className="border border-white/15 px-5 py-3 text-[9px] tracking-[.16em]">CANCEL</button><button disabled={saving} className="bg-[#8b0000] px-6 py-3 text-[9px] font-bold tracking-[.16em]">{saving ? 'SAVING...' : editor.id ? 'SAVE CHANGES' : 'CREATE PRODUCT'}</button></div>
+        <div className="mt-8 flex flex-wrap justify-end gap-2"><button type="button" onClick={() => setEditor(null)} className="border border-white/15 px-5 py-3 text-[9px] tracking-[.16em]">CANCEL</button><button disabled={saving || galleryBusy} className="bg-[#8b0000] px-6 py-3 text-[9px] font-bold tracking-[.16em] disabled:opacity-50">{saving ? 'SAVING...' : galleryBusy ? 'UPLOADING IMAGES...' : editor.id ? 'SAVE CHANGES' : 'CREATE PRODUCT'}</button></div>
       </form></div>}
       <style jsx global>{`.input{width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,.14);padding:.75rem;font-size:.75rem;outline:none}.input:focus{border-color:rgba(255,255,255,.45)}label{display:block}.input::placeholder{color:rgba(255,255,255,.25)}`}</style>
     </main>

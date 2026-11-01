@@ -91,6 +91,9 @@ const image = z.object({
   altText: z.string().optional(),
   type: z.string().optional(),
   publicId: z.string().optional(),
+  angle: z
+    .enum(['front', 'back', 'left', 'right', 'detail', 'lifestyle', 'other'])
+    .optional(),
 });
 
 const body = z.object({
@@ -251,6 +254,7 @@ async function updateProduct(
               altText: i.altText,
               type: i.type || 'image',
               publicId: i.publicId,
+              angle: i.angle,
               position: n,
             })),
           });

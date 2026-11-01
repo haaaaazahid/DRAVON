@@ -151,6 +151,7 @@ model ProductImage {
   position    Int      @default(0)
   type        String   @default("image")
   publicId    String?
+  angle       String?
 }
 
 model CollectionProduct {
