@@ -42,21 +42,6 @@ export default async function Home(){
     </section>
 
     <section className="container py-16 md:py-24">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div><div className="eyebrow"><span className="redline"/>THE SKILL INDEX</div><h2 className="mt-3 text-3xl font-black uppercase tracking-[-.04em] md:text-5xl">ONE SKILL. ONE STANDARD.</h2></div>
-        <p className="max-w-sm text-[10px] leading-5 text-[var(--muted)]">Every movement has its own discipline. Explore the skills that shape calisthenics culture.</p>
-      </div>
-      <div className="mt-8 grid grid-cols-2 gap-2 md:grid-cols-4">
-        {skills.map((skill,index)=><Link key={skill.slug} href={`/shop?collection=${skill.slug}`} className="group relative aspect-[.82] overflow-hidden bg-black">
-          <Image src={skill.image} alt={skill.alt} fill sizes="(max-width:768px) 50vw, 25vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/5 to-transparent" />
-          <div className="absolute bottom-4 left-4 right-4 text-white"><div className="mb-2 h-[2px] w-8 bg-[var(--red)]"/><div className="text-lg font-black tracking-[-.03em] md:text-2xl">{skill.name}</div><div className="mt-1 text-[7px] font-bold tracking-[.16em] text-white/70 md:text-[8px]">{skill.focus}</div></div>
-          <span className="absolute right-3 top-3 text-[9px] font-black text-white/70">0{index+1}</span>
-        </Link>)}
-      </div>
-    </section>
-
-    <section className="container py-16 md:py-24">
       <div className="flex flex-col justify-between gap-4 border-b border-[var(--line)] pb-6 md:flex-row md:items-end"><div><div className="eyebrow"><span className="redline"/>BUILT TO BE WORN</div><h2 className="mt-3 text-3xl font-black uppercase tracking-[-.04em]">THE ESSENTIALS</h2></div><Link href="/shop" className="text-[9px] font-black tracking-[.16em]">VIEW ALL <ArrowRight size={12} className="inline"/></Link></div>
       <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4 lg:grid-cols-6">{featured.slice(0,6).map((p:any,index:number)=><ProductCard p={p} key={`${p.id || p.slug}-${index}`}/>)}</div>
     </section>
