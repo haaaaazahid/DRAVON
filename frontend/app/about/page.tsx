@@ -8,7 +8,7 @@ const pillars = [
 
 export default function AboutPage(){return <main>
   <section className="relative min-h-[72vh] overflow-hidden border-b border-[var(--line)] flex items-end">
-    <Image src="/images/skills/handstand.webp" alt="Athlete balancing in a handstand outdoors" fill priority sizes="100vw" className="object-cover object-[center_38%]"/>
+    <Image src="/images/skills/planche.webp" alt="Athlete balancing in a planche position outdoors" fill priority sizes="100vw" className="object-cover object-[center_38%]"/>
     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/10"/>
     <div className="container relative z-10 text-white py-14 md:py-20"><div className="eyebrow"><span className="redline"/>THE DRAVON CODE</div><h1 className="text-[16vw] md:text-[10vw] leading-[.78] font-black tracking-[-.08em] mt-5">BUILT<br/><span className="text-[var(--red)]">DIFFERENT.</span></h1><p className="max-w-xl text-sm md:text-base leading-7 text-white/70 mt-8">DRAVON exists for people who train with intent. Performance gear shaped by the culture of movement, strength and relentless self-improvement.</p></div>
   </section>
