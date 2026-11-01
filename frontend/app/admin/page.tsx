@@ -9,15 +9,22 @@ import {
 const API = '/api';
 const ADMIN_EMAIL = 'admin@dravon.in';
 
+const MOVEMENT_OPTIONS = [
+  ['muscle-up', 'MUSCLE-UP'], ['front-lever', 'FRONT LEVER'],
+  ['handstand', 'HANDSTAND'], ['planche', 'PLANCHE'],
+  ['human-flag', 'HUMAN FLAG'], ['back-lever', 'BACK LEVER'],
+  ['l-sit', 'L-SIT'], ['dips', 'DIPS'], ['general-training', 'GENERAL TRAINING'],
+] as const;
+
 type Variant = { id?: string; sku: string; color: string; size: string; stock: number };
 type Product = {
   id: string; name: string; slug: string; description?: string; price: number | string; mrp?: number | string;
-  published: boolean; featured: boolean; images?: { id?: string; url: string; altText?: string }[]; variants?: Variant[];
+  published: boolean; featured: boolean; movements?: string[]; images?: { id?: string; url: string; altText?: string }[]; variants?: Variant[];
 };
 
 const emptyProduct: Omit<Product, 'id'> = {
   name: '', slug: '', description: '', price: 0, mrp: 0, published: false, featured: false,
-  images: [], variants: [{ sku: '', color: 'Black', size: 'M', stock: 0 }],
+  images: [], movements: [], variants: [{ sku: '', color: 'Black', size: 'M', stock: 0 }],
 };
 
 function stockLabel(stock: number) {
@@ -105,6 +112,7 @@ export default function AdminPage() {
       ...product,
       price: Number(product.price), mrp: Number(product.mrp || 0),
       images: (product.images || []).map((x) => ({ url: x.url, altText: x.altText || '' })),
+      movements: Array.isArray(product.movements) ? product.movements : [],
       variants: (product.variants || []).map((v) => ({ sku: v.sku, color: v.color, size: v.size, stock: Number(v.stock) })),
     });
   }
@@ -287,6 +295,25 @@ export default function AdminPage() {
         </div>
         <Field label="DESCRIPTION"><textarea value={editor.description || ''} onChange={(e) => updateEditor('description', e.target.value)} className="input min-h-24" /></Field>
         <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3 text-[10px] tracking-[.12em]"><label><input type="checkbox" checked={!!editor.published} onChange={(e) => updateEditor('published', e.target.checked)} className="mr-2" />PUBLISHED / LIVE</label><label><input type="checkbox" checked={!!editor.featured} onChange={(e) => updateEditor('featured', e.target.checked)} className="mr-2" />FEATURED</label></div>
+
+        <div className="mt-8 border-t border-white/10 pt-6">
+          <div className="text-[9px] tracking-[.18em] font-bold">MOVEMENT CATEGORIES</div>
+          <p className="mt-1 text-[9px] text-white/40">Assign this product to every movement it is designed for. It will appear automatically in those movement collections on the storefront.</p>
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {MOVEMENT_OPTIONS.map(([slug, label]) => {
+              const checked = (editor.movements || []).includes(slug);
+              return <label key={slug} className={`flex cursor-pointer items-center gap-2 border px-3 py-3 text-[9px] tracking-[.1em] transition ${checked ? 'border-[#8b0000] bg-[#8b0000]/15 text-white' : 'border-white/10 text-white/60 hover:border-white/30'}`}>
+                <input type="checkbox" checked={checked} onChange={(event) => {
+                  const current = editor.movements || [];
+                  const movements = event.target.checked ? [...current, slug] : current.filter((item) => item !== slug);
+                  setEditor({ ...editor, movements });
+                }} className="accent-[#8b0000]" />
+                {label}
+              </label>;
+            })}
+          </div>
+          <div className="mt-3 text-[8px] text-white/35">A product can belong to multiple movements. Leave all unchecked to keep it in the general store only.</div>
+        </div>
 
         <div className="mt-8 border-t border-white/10 pt-6">
           <div className="flex justify-between items-center">

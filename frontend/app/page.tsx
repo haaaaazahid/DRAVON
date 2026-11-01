@@ -37,7 +37,22 @@ export default async function Home(){
     <section className="border-y border-[var(--line)] bg-[var(--surface)] py-16 md:py-20">
       <div className="container">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end"><div><div className="eyebrow"><span className="redline"/>TRAIN. MOVE. MASTER.</div><h2 className="mt-3 text-3xl font-black uppercase tracking-[-.04em]">SHOP BY MOVEMENT</h2></div><Link href="/collections" className="text-[9px] font-black tracking-[.16em]">EXPLORE ALL <ArrowRight size={12} className="inline"/></Link></div>
-        <div className="mt-8 grid grid-cols-2 gap-2 md:grid-cols-4">{collections.map(([name,img])=><Link key={name} href={`/shop?collection=${name.toLowerCase().replaceAll(' ','-')}`} className="group relative aspect-[.78] overflow-hidden bg-black"><Image src={img} alt={name} fill sizes="20vw" className="object-cover opacity-80 transition duration-700 group-hover:scale-105 group-hover:opacity-100"/><div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"/><div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-[9px] font-black tracking-[.14em] text-white">{name}<ArrowRight size={12}/></div></Link>)}</div>
+        <div className="mt-8 grid grid-cols-2 gap-2 md:grid-cols-4">{collections.map(([name,img])=><Link key={name} href={`/shop?movement=${name.toLowerCase().replaceAll(' ','-')}`} className="group relative aspect-[.78] overflow-hidden bg-black"><Image src={img} alt={name} fill sizes="20vw" className="object-cover opacity-80 transition duration-700 group-hover:scale-105 group-hover:opacity-100"/><div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"/><div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-[9px] font-black tracking-[.14em] text-white">{name}<ArrowRight size={12}/></div></Link>)}</div>
+      </div>
+    </section>
+
+    <section className="container py-16 md:py-24">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div><div className="eyebrow"><span className="redline"/>THE SKILL INDEX</div><h2 className="mt-3 text-3xl font-black uppercase tracking-[-.04em] md:text-5xl">ONE SKILL. ONE STANDARD.</h2></div>
+        <p className="max-w-sm text-[10px] leading-5 text-[var(--muted)]">Every movement has its own discipline. Explore the skills that shape calisthenics culture.</p>
+      </div>
+      <div className="mt-8 grid grid-cols-2 gap-2 md:grid-cols-4">
+        {skills.map((skill,index)=><Link key={skill.slug} href={`/shop?collection=${skill.slug}`} className="group relative aspect-[.82] overflow-hidden bg-black">
+          <Image src={skill.image} alt={skill.alt} fill sizes="(max-width:768px) 50vw, 25vw" className="object-cover transition-transform duration-700 group-hover:scale-105" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/5 to-transparent" />
+          <div className="absolute bottom-4 left-4 right-4 text-white"><div className="mb-2 h-[2px] w-8 bg-[var(--red)]"/><div className="text-lg font-black tracking-[-.03em] md:text-2xl">{skill.name}</div><div className="mt-1 text-[7px] font-bold tracking-[.16em] text-white/70 md:text-[8px]">{skill.focus}</div></div>
+          <span className="absolute right-3 top-3 text-[9px] font-black text-white/70">0{index+1}</span>
+        </Link>)}
       </div>
     </section>
 

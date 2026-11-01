@@ -96,6 +96,7 @@ model Product {
 
   published       Boolean             @default(false)
   featured        Boolean             @default(false)
+  movements       String[]            @default([])
 
   seoTitle        String?
   seoDescription  String?

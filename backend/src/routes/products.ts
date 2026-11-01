@@ -8,10 +8,12 @@ const r = Router();
 r.get('/', async (req, res) => {
   const q = String(req.query.q || '');
   const published = req.query.published === 'true';
+  const movement = String(req.query.movement || '').trim().toLowerCase();
 
   const data = await db.product.findMany({
     where: {
       ...(published ? { published: true } : {}),
+      ...(movement ? { movements: { has: movement } } : {}),
       ...(q
         ? {
             OR: [
@@ -100,6 +102,7 @@ const body = z.object({
 
   published: z.boolean().optional(),
   featured: z.boolean().optional(),
+  movements: z.array(z.string().min(1)).optional(),
 
   fabric: z.string().optional(),
   gsm: z.string().optional(),
@@ -211,6 +214,7 @@ async function updateProduct(
           ...(x.featured !== undefined
             ? { featured: x.featured }
             : {}),
+          ...(x.movements !== undefined ? { movements: [...new Set(x.movements)] } : {}),
 
           ...(x.fabric !== undefined ? { fabric: x.fabric } : {}),
           ...(x.gsm !== undefined ? { gsm: x.gsm } : {}),
@@ -373,6 +377,7 @@ r.post('/', adminAuth, async (req: AdminRequest, res) => {
 
         published: x.published ?? false,
         featured: x.featured ?? false,
+        movements: [...new Set(x.movements || [])],
 
         fabric: x.fabric,
         gsm: x.gsm,

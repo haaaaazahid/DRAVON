@@ -78,6 +78,12 @@ function normalize(product: any) {
 export default function Shop() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('ALL');
+  const [movementFilter, setMovementFilter] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setMovementFilter((params.get('movement') || '').trim().toLowerCase());
+  }, []);
 
   const [items, setItems] = useState<any[]>(
     Array.isArray(fallback) ? fallback : []
@@ -96,8 +102,10 @@ export default function Shop() {
 
     async function loadProducts() {
       try {
+        const requestedMovement = new URLSearchParams(window.location.search).get('movement')?.trim().toLowerCase();
+        const movementQuery = requestedMovement ? `&movement=${encodeURIComponent(requestedMovement)}` : '';
         const response = await fetch(
-          `${API}/products?published=true`,
+          `${API}/products?published=true${movementQuery}`,
           {
             method: 'GET',
             headers: {
@@ -182,8 +190,10 @@ export default function Shop() {
       const matchesSearch =
         !search ||
         productName.includes(search);
+      const productMovements = Array.isArray(product?.movements) ? product.movements : [];
+      const matchesMovement = !movementFilter || productMovements.includes(movementFilter);
 
-      return matchesCategory && matchesSearch;
+      return matchesCategory && matchesSearch && matchesMovement;
     });
 
     if (sort === 'low') {
@@ -203,7 +213,7 @@ export default function Shop() {
     }
 
     return result;
-  }, [items, query, category, sort]);
+  }, [items, query, category, sort, movementFilter]);
 
   /*
   |--------------------------------------------------------------------------
@@ -390,12 +400,14 @@ export default function Shop() {
             different category.
           </p>
 
-          {(query || category !== 'ALL') && (
+          {(query || category !== 'ALL' || movementFilter) && (
             <button
               type="button"
               onClick={() => {
                 setQuery('');
                 setCategory('ALL');
+                setMovementFilter('');
+                window.history.replaceState({}, '', '/shop');
               }}
               className="mt-5 border border-[var(--line)] px-5 py-3 text-[9px] font-black tracking-[0.14em] transition hover:bg-[var(--fg)] hover:text-[var(--bg)]"
             >

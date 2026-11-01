@@ -47,11 +47,19 @@ export function Header() {
           className="flex shrink-0 items-center gap-2"
         >
           <img
+            src="/brand/symbol.png"
+            alt=""
+            aria-hidden="true"
+            width={32}
+            height={32}
+            className="h-7 w-auto object-contain sm:h-8"
+          />
+          <img
             src="/brand/wordmark.png"
             alt="DRAVON"
-            width={180}
-            height={20}
-            className="h-auto w-[150px] sm:w-[180px]"
+            width={145}
+            height={16}
+            className="h-auto w-[112px] sm:w-[128px]"
           />
         </Link>
 
