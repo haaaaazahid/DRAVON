@@ -51,7 +51,7 @@ export default async function Home(){
 
     <section className="container py-16 md:py-24">
       <div className="flex flex-col justify-between gap-4 border-b border-[var(--line)] pb-6 md:flex-row md:items-end"><div><div className="eyebrow"><span className="redline"/>BUILT TO BE WORN</div><h2 className="mt-3 text-3xl font-black uppercase tracking-[-.04em]">THE ESSENTIALS</h2></div><Link href="/shop" className="text-[9px] font-black tracking-[.16em]">VIEW ALL <ArrowRight size={12} className="inline"/></Link></div>
-      <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4 lg:grid-cols-6">{featured.slice(0,6).map((p:any,index:number)=><ProductCard p={p} key={`${p.id || p.slug}-${index}`}/>)}</div>
+      {featured.length>0?<div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4 lg:grid-cols-6">{featured.slice(0,6).map((p:any,index:number)=><ProductCard p={p} key={`${p.id || p.slug}-${index}`}/>)}</div>:<div className="mt-8 border border-[var(--line)] px-6 py-14 text-center text-[10px] tracking-[.14em] text-[var(--muted)]">NEW DROPS COMING SOON. CHECK BACK SHORTLY.</div>}
     </section>
 
     <section className="container grid gap-px border border-[var(--line)] bg-[var(--line)] md:grid-cols-[1.05fr_1fr]">

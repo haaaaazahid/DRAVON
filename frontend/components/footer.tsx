@@ -30,7 +30,7 @@ export function Footer() {
       <div className="container grid gap-10 py-12 md:grid-cols-4">
         <div>
           <Link href="/" aria-label="DRAVON home" className="flex items-center gap-2">
-            <img src="/brand/wordmark.png" alt="DRAVON" width={190} height={42} className="h-auto w-[190px] object-contain" />
+            <img src="/brand/wordmark.png" alt="DRAVON" width={190} height={42} className="brand-logo h-auto w-[190px] object-contain" />
           </Link>
           <p className="mt-3 text-[10px] tracking-[.16em] text-[var(--muted)]">STRENGTH · DISCIPLINE · EVOLVE</p>
         </div>

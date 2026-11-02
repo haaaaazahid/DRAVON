@@ -26,3 +26,4 @@ a{text-decoration:none;color:inherit}button,input,select,textarea{font:inherit;m
 button:disabled{cursor:not-allowed}
 .container{padding-inline:0}
 @media(max-width:767px){.container{width:calc(100% - 32px)}}
+.brand-logo{display:block}[data-theme="dark"] .brand-logo{filter:invert(1)}

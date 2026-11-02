@@ -163,13 +163,17 @@ export function ProductCard({ p }: any) {
         className="block"
       >
         <div className="relative aspect-[4/5] overflow-hidden bg-[var(--surface)]">
-          <Image
+          {p.image ? (
+            <Image
             src={p.image}
             alt={p.name}
             fill
             sizes="(max-width:700px) 50vw, (max-width:1100px) 25vw, 20vw"
             className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
           />
+          ) : (
+            <div className="absolute inset-0 grid place-items-center text-[9px] tracking-[.16em] text-[var(--muted)]">NO IMAGE</div>
+          )}
 
           {hoverImage && (
             <Image

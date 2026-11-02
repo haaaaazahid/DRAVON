@@ -44,22 +44,14 @@ export function Header() {
         <Link
           href="/"
           aria-label="DRAVON home"
-          className="flex shrink-0 items-center gap-2"
+          className="flex shrink-0 items-center"
         >
-          <img
-            src="/brand/symbol.png"
-            alt=""
-            aria-hidden="true"
-            width={32}
-            height={32}
-            className="h-7 w-auto object-contain sm:h-8"
-          />
           <img
             src="/brand/wordmark.png"
             alt="DRAVON"
             width={145}
             height={16}
-            className="h-auto w-[112px] sm:w-[128px]"
+            className="brand-logo h-auto w-[132px] sm:w-[164px]"
           />
         </Link>
 

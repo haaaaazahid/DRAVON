@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
 
-import { products as fallback } from '@/lib/catalog';
 import { ProductCard } from '@/components/product-card';
 
 /*
@@ -85,9 +84,9 @@ export default function Shop() {
     setMovementFilter((params.get('movement') || '').trim().toLowerCase());
   }, []);
 
-  const [items, setItems] = useState<any[]>(
-    Array.isArray(fallback) ? fallback : []
-  );
+  const [items, setItems] = useState<any[]>([]);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [sort, setSort] = useState('featured');
 
@@ -131,13 +130,11 @@ export default function Shop() {
 
         if (isMounted) {
           setItems(products.map(normalize));
+          setStatus('ready');
         }
       } catch (error) {
-        /*
-         * Keep catalog fallback if the API is unavailable.
-         * This prevents the shop from becoming completely blank.
-         */
         console.error('DRAVON product fetch failed:', error);
+        if (isMounted) setStatus('error');
       }
     }
 
@@ -146,7 +143,7 @@ export default function Shop() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [reloadKey]);
 
   /*
   |--------------------------------------------------------------------------
@@ -357,7 +354,11 @@ export default function Shop() {
       <section className="flex items-center justify-between gap-4 py-5">
 
         <div className="text-[9px] font-bold tracking-[0.14em] text-[var(--muted)]">
-          {filteredProducts.length} PRODUCTS
+          {status === 'loading'
+            ? 'LOADING…'
+            : status === 'error'
+              ? 'UNAVAILABLE'
+              : `${filteredProducts.length} PRODUCT${filteredProducts.length === 1 ? '' : 'S'}`}
         </div>
 
         <div className="hidden text-right text-[8px] tracking-[0.12em] text-[var(--muted)] sm:block">
@@ -370,7 +371,35 @@ export default function Shop() {
           PRODUCT GRID
       ================================================================ */}
 
-      {filteredProducts.length > 0 ? (
+      {status === 'loading' ? (
+
+        <div className="grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4 lg:grid-cols-5" aria-busy="true" aria-label="Loading products">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="animate-pulse">
+              <div className="aspect-[4/5] bg-[var(--surface)]" />
+              <div className="mt-3 h-2.5 w-3/4 bg-[var(--surface)]" />
+              <div className="mt-2 h-2 w-1/3 bg-[var(--surface)]" />
+            </div>
+          ))}
+        </div>
+
+      ) : status === 'error' ? (
+
+        <div className="flex min-h-[300px] flex-col items-center justify-center border border-[var(--line)] px-6 text-center">
+          <div className="text-xs font-black tracking-[0.16em]">COULD NOT LOAD PRODUCTS</div>
+          <p className="mt-2 max-w-sm text-[10px] leading-5 text-[var(--muted)]">
+            The store is taking longer than usual to respond. Please try again in a moment.
+          </p>
+          <button
+            type="button"
+            onClick={() => { setStatus('loading'); setReloadKey((k) => k + 1); }}
+            className="mt-5 border border-[var(--line)] px-5 py-3 text-[9px] font-black tracking-[0.14em] transition hover:bg-[var(--fg)] hover:text-[var(--bg)]"
+          >
+            TRY AGAIN
+          </button>
+        </div>
+
+      ) : filteredProducts.length > 0 ? (
 
         <div className="grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4 lg:grid-cols-5">
 

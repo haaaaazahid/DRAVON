@@ -1,12 +1,4 @@
 import { SITE_IMAGES } from "@/lib/site-images";
-export const products=[
-{id:'1',slug:'dravon-oversized-tee',name:'DRAVON OVERSIZED TEE',price:1799,mrp:2199,tag:'NEW',colors:['Black','White'],sizes:['XS','S','M','L','XL','XXL'],category:'TEES',image:'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=82',gallery:['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=82','https://images.unsplash.com/photo-1503341504253-dff4815485f1?auto=format&fit=crop&w=1200&q=82']},
-{id:'2',slug:'dravon-performance-tee',name:'DRAVON PERFORMANCE TEE',price:1999,mrp:0,tag:null,colors:['White','Black'],sizes:['S','M','L','XL'],category:'TEES',image:'https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=1200&q=82',gallery:[]},
-{id:'3',slug:'training-shorts',name:'TRAINING SHORTS',price:1599,mrp:1899,tag:'SALE',colors:['Black','Grey'],sizes:['S','M','L','XL'],category:'SHORTS',image:'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=1200&q=82',gallery:[]},
-{id:'4',slug:'street-hoodie',name:'STREET HOODIE',price:3299,mrp:0,tag:'NEW',colors:['Black'],sizes:['S','M','L','XL','XXL'],category:'HOODIES',image:'https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=1200&q=82',gallery:[]},
-{id:'5',slug:'performance-tank',name:'PERFORMANCE TANK',price:1399,mrp:0,tag:null,colors:['Black','White'],sizes:['XS','S','M','L','XL'],category:'TANKS',image:'https://images.unsplash.com/photo-1556906781-9a412961c28c?auto=format&fit=crop&w=1200&q=82',gallery:[]},
-{id:'6',slug:'dravon-joggers',name:'JOGGERS',price:2199,mrp:2599,tag:'SALE',colors:['Black'],sizes:['S','M','L','XL','XXL'],category:'BOTTOMS',image:'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?auto=format&fit=crop&w=1200&q=82',gallery:[]},
-];
 export const skills = [
   { name: 'MUSCLE-UP', slug: 'muscle-up', image: SITE_IMAGES.skills.muscleUp, alt: 'Athlete transitioning over a pull-up bar in a muscle-up', focus: 'PULL · TRANSITION · POWER' },
   { name: 'FRONT LEVER', slug: 'front-lever', image: SITE_IMAGES.skills.frontLever, alt: 'Athlete holding a horizontal front lever on a bar', focus: 'CORE · CONTROL · STRENGTH' },
