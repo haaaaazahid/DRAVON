@@ -71,6 +71,17 @@ function swatch(color: string) {
 export function ProductCard({ p }: any) {
   const { add, open } = useCart();
 
+  /*
+   * Second image shown on hover (desktop): prefers the BACK view,
+   * otherwise the next image in the product's own gallery.
+   */
+  const hoverImage: string | null = (() => {
+    const imgs: any[] = Array.isArray(p.images) ? p.images : [];
+    const other = (x: any) => x?.url && x.url !== p.image;
+    const found = imgs.find((x) => x?.angle === "back" && other(x)) || imgs.find(other);
+    return found?.url || (Array.isArray(p.gallery) ? p.gallery.find((u: string) => u && u !== p.image) : null) || null;
+  })();
+
   const sizes = p.sizes || [];
   const colors = p.colors || [];
   const variants = p.variants || [];
@@ -159,6 +170,17 @@ export function ProductCard({ p }: any) {
             sizes="(max-width:700px) 50vw, (max-width:1100px) 25vw, 20vw"
             className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
           />
+
+          {hoverImage && (
+            <Image
+              src={hoverImage}
+              alt=""
+              aria-hidden
+              fill
+              sizes="(max-width:700px) 50vw, (max-width:1100px) 25vw, 20vw"
+              className="pointer-events-none object-cover opacity-0 transition-[opacity,transform] duration-500 md:group-hover:scale-[1.04] md:group-hover:opacity-100"
+            />
+          )}
 
           {p.tag && (
             <span className="absolute left-3 top-3 bg-[var(--red)] px-2 py-1 text-[8px] font-black tracking-[.16em] text-white">

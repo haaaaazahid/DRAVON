@@ -12,3 +12,5 @@ backend/node_modules/
 frontend/node_modules/
 backend/dist/
 frontend/.vercel/
+
+_backup-before-gallery/
